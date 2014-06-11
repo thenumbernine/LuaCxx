@@ -20,13 +20,15 @@ int Config::errorHandler(lua_State *L) {
 }
 
 Config &Config::loadFile(std::string filename) {
-	std::string str = Common::File::read(filename);
-	return loadString(str);
+	luaL_loadfile(L, filename.c_str());
+	if (!lua_isfunction(L, lua_gettop(L))) throw Common::Exception() << "failed to load file " << filename << " with error " << lua_tostring(L,-1);
+	call(0,0);
+	return *this;
 }
 
 Config &Config::loadString(std::string str) {
 	luaL_loadstring(L, str.c_str());
-	if (!lua_isfunction(L, lua_gettop(L))) throw Common::Exception() << "expected function!";
+	if (!lua_isfunction(L, lua_gettop(L))) throw Common::Exception() << "failed to load string " << str << " with error " << lua_tostring(L, -1);
 	call(0, 0);
 	return *this;
 }
