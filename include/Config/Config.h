@@ -13,7 +13,7 @@ protected:
 	static int errorHandler(lua_State *);
 	
 public:
-	Config(std::string filename = "config.lua");
+	Config();
 	virtual ~Config();
 
 	Config &loadFile(std::string filename);

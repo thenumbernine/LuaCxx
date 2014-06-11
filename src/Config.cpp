@@ -4,14 +4,11 @@
 
 namespace Config {
 
-Config::Config(std::string filename) 
+Config::Config() 
 {
 	L = luaL_newstate();
 	if (!L) throw Common::Exception() << "failed to create lua state!";
-	
 	luaL_openlibs(L);
-
-	loadFile(filename);
 }
 
 Config::~Config() {
