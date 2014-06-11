@@ -1,7 +1,6 @@
 #include "Config/Config.h"
 #include "Common/Exception.h"
 #include "Common/File.h"
-#include <functional>
 
 namespace Config {
 
@@ -18,6 +17,10 @@ Config::Config(std::string filename)
 Config::~Config() {
 	if (L) lua_close(L);
 }
+	
+int Config::errorHandler(lua_State *L) {
+	throw Common::Exception() << "lua error " << lua_tostring(L, -1);
+}
 
 Config &Config::loadFile(std::string filename) {
 	std::string str = Common::File::read(filename);
@@ -25,15 +28,21 @@ Config &Config::loadFile(std::string filename) {
 }
 
 Config &Config::loadString(std::string str) {
-	std::function<int(lua_State*)> errorHandler = [&](lua_State *L) -> int {
-		std::cout << "lua error " << lua_tostring(L, -1) << std::endl;
-		return 0;
-	};
-	lua_pushcfunction(L, errorHandler.target<int(lua_State*)>());
 	luaL_loadstring(L, str.c_str());
-	lua_pcall(L, 0, 0, lua_gettop(L)-1);
-	lua_pop(L,1);	//remove error handler
+	if (!lua_isfunction(L, lua_gettop(L))) throw Common::Exception() << "expected function!";
+	call(0, 0);
 	return *this;
+}
+
+//expects function and args on the stack 
+int Config::call(int nargs, int nresults) {
+	lua_pushcfunction(L, errorHandler);	//add error handler
+	int errHandlerLoc = lua_gettop(L) - nargs - 1;
+	lua_insert(L, errHandlerLoc);	//move it beneath the function and its args
+	if (!lua_isfunction(L, errHandlerLoc)) throw Common::Exception() << "expected function!";
+	int result = lua_pcall(L, nargs, nresults, errHandlerLoc);
+	lua_remove(L, errHandlerLoc);	//remove error handler
+	return result; //return with results on the stack
 }
 
 bool Config::get(std::string name, bool &result) {
