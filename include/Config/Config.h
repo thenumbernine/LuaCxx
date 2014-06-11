@@ -1,11 +1,7 @@
 #pragma once
 
 #include <string>
-
-extern "C" {
-#include <luajit.h>
-#include <lua.h>
-}
+#include "lua.hpp"
 
 namespace Config {
 
@@ -20,25 +16,12 @@ public:
 	Config &loadFile(std::string filename);
 	Config &loadString(std::string str);
 
-	template<typename T> T get(std::string name);
+	bool get(std::string name, bool &result);
+	bool get(std::string name, int &result);
+	bool get(std::string name, float &result);
+	bool get(std::string name, double &result);
+	bool get(std::string name, std::string &result);
 };
-
-
-template<> double Config::get<double>(std::string name) {
-	lua_getglobal(L, name.c_str());
-	double result = lua_tonumber(L, -1);
-	lua_pop(L,1);
-	return result;
-}
-
-template<> std::string Config::get<std::string>(std::string name) {
-	lua_getglobal(L, name.c_str());
-	size_t len = 0;
-	const char *cResult = lua_tolstring(L, -1, &len);
-	std::string result(cResult, len);
-	lua_pop(L,1);
-	return result;
-}
 
 }
 

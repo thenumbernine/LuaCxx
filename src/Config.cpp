@@ -1,40 +1,16 @@
 #include "Config/Config.h"
 #include "Common/Exception.h"
-
+#include "Common/File.h"
 #include <functional>
-
-#include "lauxlib.h"
-#include "lualib.h"
 
 namespace Config {
 
 Config::Config(std::string filename) 
-: L(luaL_newstate())
 {
-	lua_gc(L, LUA_GCSTOP, 0);  /* stop collector during initialization */
+	L = luaL_newstate();
+	if (!L) throw Common::Exception() << "failed to create lua state!";
+	
 	luaL_openlibs(L);
-	lua_gc(L, LUA_GCRESTART, -1);
-
-	//http://luajit.org/ext_c_api.html
-	
-	typedef int ExceptionWrapper(lua_State *L, lua_CFunction f);
-	
-	std::function<ExceptionWrapper> wrapper = [&](lua_State *L, lua_CFunction f) -> int {
-		try {
-			return f(L);
-		} catch (const char *s) {  // Catch and convert exceptions.
-			lua_pushstring(L, s);
-		} catch (std::exception& e) {
-			lua_pushstring(L, e.what());
-		} catch (...) {
-			lua_pushliteral(L, "caught (...)");
-		}
-		return lua_error(L);  // Rethrow as a Lua error.
-	};
-
-	lua_pushlightuserdata(L, (void*)wrapper.target<ExceptionWrapper>());
-	luaJIT_setmode(L, -1, LUAJIT_MODE_WRAPCFUNC | LUAJIT_MODE_ON);
-	lua_pop(L, 1);
 
 	loadFile(filename);
 }
@@ -44,13 +20,73 @@ Config::~Config() {
 }
 
 Config &Config::loadFile(std::string filename) {
-	if (!luaL_dofile(L, filename.c_str())) throw Common::Exception() << "failed to load file " << filename;
-	return *this;
+	std::string str = Common::File::read(filename);
+	return loadString(str);
 }
 
 Config &Config::loadString(std::string str) {
-	if (!luaL_dostring(L, str.c_str())) throw Common::Exception() << "failed to load string " << str;
+	std::function<int(lua_State*)> errorHandler = [&](lua_State *L) -> int {
+		std::cout << "lua error " << lua_tostring(L, -1) << std::endl;
+		return 0;
+	};
+	lua_pushcfunction(L, errorHandler.target<int(lua_State*)>());
+	luaL_loadstring(L, str.c_str());
+	lua_pcall(L, 0, 0, lua_gettop(L)-1);
+	lua_pop(L,1);	//remove error handler
 	return *this;
+}
+
+bool Config::get(std::string name, bool &result) {
+	lua_getglobal(L, name.c_str());
+	if (lua_isnil(L, -1)) {
+		lua_pop(L,1);
+		return false;
+	}
+	result = lua_toboolean(L, -1);
+	lua_pop(L,1);
+	return true;
+}
+
+bool Config::get(std::string name, int &result) {
+	lua_getglobal(L, name.c_str());
+	if (lua_isnil(L, -1)) {
+		lua_pop(L,1);
+		return false;
+	}
+	result = lua_tointeger(L, -1);
+	lua_pop(L,1);
+	return true;
+}
+
+bool Config::get(std::string name, float &result) {
+	double doubleResult;
+	if (!get(name, doubleResult)) return false;
+	result = (float)doubleResult;
+	return true;
+}
+
+bool Config::get(std::string name, double &result) {
+	lua_getglobal(L, name.c_str());
+	if (lua_isnil(L, -1)) {
+		lua_pop(L,1);
+		return false;
+	}
+	result = lua_tonumber(L, -1);
+	lua_pop(L,1);
+	return true;
+}
+
+bool Config::get(std::string name, std::string &result) {
+	lua_getglobal(L, name.c_str());
+	if (lua_isnil(L, -1)) {
+		lua_pop(L,1);
+		return false;
+	}
+	size_t len = 0;
+	const char *cResult = lua_tolstring(L, -1, &len);
+	result = std::string(cResult, len);
+	lua_pop(L,1);
+	return true;
 }
 
 };
