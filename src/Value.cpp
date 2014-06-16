@@ -20,7 +20,7 @@ Value::Value(const Value &value) : details(value.details) {}
 	
 bool Value::good() const { return details->good; }
 
-bool Value::nil() {
+bool Value::isNil() {
 	lua_State* L = details->state->getState();
 	lua_rawgeti(L, LUA_REGISTRYINDEX, details->ref);
 	bool isNil = lua_isnil(L, -1);
@@ -28,6 +28,13 @@ bool Value::nil() {
 	return isNil;
 }
 
+bool Value::isFunction() {
+	lua_State* L = details->state->getState();
+	lua_rawgeti(L, LUA_REGISTRYINDEX, details->ref);
+	bool isFunction = lua_isfunction(L, -1);
+	lua_pop(L, 1);
+	return isFunction;
+}
 
 Value Value::operator[](const std::string &key) {
 	lua_State* L = details->state->getState();

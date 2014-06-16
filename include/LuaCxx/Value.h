@@ -13,15 +13,6 @@ namespace LuaCxx {
 
 struct State;
 
-
-//stack location
-//represents a location in the Lua stack
-//pops when done (?)
-// TODO call this 'Value'
-struct StackLocation {
-};
-
-
 //ref wrapper for a stack location
 
 //used for pushing args on stack
@@ -73,7 +64,8 @@ struct Value {
 	bool good() const;
 
 	//type testing
-	virtual bool nil();
+	virtual bool isNil();
+	virtual bool isFunction();
 	
 	//dereference
 	virtual Value operator[](const std::string& key);
