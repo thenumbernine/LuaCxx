@@ -1,6 +1,6 @@
 LUACXX_PATH:=$(dir $(lastword $(MAKEFILE_LIST)))
 INCLUDE+=$(LUACXX_PATH)include
-DYNAMIC_LIBS+=$(LUACXX_PATH)dist/$(PLATFORM)/$(BUILD)/libLuaC++.dylib
+DYNAMIC_LIBS+=$(LUACXX_PATH)dist/$(PLATFORM)/$(BUILD)/libLuaCxx.dylib
 
 #working
 DYNAMIC_LIBS+=/opt/local/lib/liblua.dylib

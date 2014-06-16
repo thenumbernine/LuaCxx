@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Lua/toC.h"
+#include "LuaCxx/toC.h"
 #include <lua.hpp>
 #include <memory>
 #include <string>
 
-namespace Lua {
+namespace LuaCxx {
 
 /*
 how to handle reading values?

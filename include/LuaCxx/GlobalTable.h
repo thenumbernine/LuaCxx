@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Lua/Value.h"
+#include "LuaCxx/Value.h"
 #include <lua.hpp>
 
-namespace Lua {
+namespace LuaCxx {
 
 struct GlobalTable : public Value {
 protected:

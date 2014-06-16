@@ -1,6 +1,6 @@
-#include "Lua/Value.h"
+#include "LuaCxx/Value.h"
 
-namespace Lua {
+namespace LuaCxx {
 
 //assumes value to rememer is on top
 //pops value from stack

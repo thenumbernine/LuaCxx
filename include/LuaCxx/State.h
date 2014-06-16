@@ -1,26 +1,26 @@
 #pragma once
 
-#include "Lua/GlobalTable.h"
+#include "LuaCxx/GlobalTable.h"
 #include "Common/Exception.h"
 #include <lua.hpp>
 #include <string>
 #include <functional>
 
-namespace Lua {
+namespace LuaCxx {
 
-struct Lua {
+struct State {
 protected:
 	lua_State *L;
 
 	static int errorHandler(lua_State *);
 	
 public:
-	Lua();
-	virtual ~Lua();
+	State();
+	virtual ~State();
 
-	Lua& loadFile(const std::string& filename);
-	Lua& loadString(const std::string& str);
-	Lua& runString(const std::string& str, int narg, int nret);
+	State& loadFile(const std::string& filename);
+	State& loadString(const std::string& str);
+	State& runString(const std::string& str, int narg, int nret);
 
 	//expects function and args on the stack 
 	//returns with results on the stack

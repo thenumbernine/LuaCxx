@@ -1,6 +1,6 @@
-#include "Lua/GlobalTable.h"
+#include "LuaCxx/GlobalTable.h"
 
-namespace Lua {
+namespace LuaCxx {
 
 lua_State* GlobalTable::pushGlobalTable(lua_State* L) {
 	lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
