@@ -17,6 +17,8 @@ Value::Details::~Details() {
 
 Value::Value(lua_State *L) : details(std::make_shared<Details>(L)) {}
 Value::Value(const Value &value) : details(value.details) {}
+	
+bool Value::good() const { return details->good; }
 
 Value Value::operator[](const std::string &key) {
 	lua_rawgeti(details->L, LUA_REGISTRYINDEX, details->ref);	//t

@@ -32,6 +32,8 @@ struct Value {
 	Value(lua_State *L);
 	Value(const Value &value);
 	
+	bool good() const;
+	
 	virtual Value operator[](const std::string &key);
 	virtual Value operator[](int key);
 

@@ -1,30 +1,30 @@
 #include "Common/Test.h"
-#include "Lua/Lua.h"
+#include "LuaCxx/State.h"
 #include <string>
 
 int main() {
 	//test reading values
 	{
-		Lua::Lua lua;
+		LuaCxx::State L;
 		
-		lua.loadString("a = 1");
+		L.loadString("a = 1");
 		int a = -1;
-		TEST_EQ((lua._G()["a"] >> a).good(), true);
+		TEST_EQ((L._G()["a"] >> a).good(), true);
 		TEST_EQ(a, 1);
 
-		lua.loadString("b = 2.5");
+		L.loadString("b = 2.5");
 		double b = -1.;
-		TEST_EQ((lua._G()["b"] >> b).good(), true);
+		TEST_EQ((L._G()["b"] >> b).good(), true);
 		TEST_EQ(b, 2.5);
 
-		lua.loadString("c = false");
+		L.loadString("c = false");
 		bool c = true;
-		TEST_EQ((lua._G()["c"] >> c).good(), true);
+		TEST_EQ((L._G()["c"] >> c).good(), true);
 		TEST_EQ(c, false);
 
-		lua.loadString("d = 'testing'");
+		L.loadString("d = 'testing'");
 		std::string d;
-		TEST_EQ((lua._G()["d"] >> d).good(), true);
+		TEST_EQ((L._G()["d"] >> d).good(), true);
 		TEST_EQ(d, "testing");
 	}
 
