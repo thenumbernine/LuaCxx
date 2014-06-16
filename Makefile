@@ -1,4 +1,4 @@
-DIST_FILENAME=Config
+DIST_FILENAME=LuaC++
 DIST_TYPE=lib
 include ../Common/Base.mk
 include ../Tensor/Include.mk

@@ -1,4 +1,2 @@
-Config file reader based on Lua
-Might work to template-ize it all in the future, return table wrappers, iterators, etc.
-I have done all this in the past.  For an ugly mess of it, see http://christopheremoore.net/inspiration
+Lua wrapper for C++ access similar to the Lua langauge itself.
 
