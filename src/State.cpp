@@ -1,4 +1,6 @@
 #include "LuaCxx/State.h"
+#include "LuaCxx/Value.h"
+#include "LuaCxx/GlobalTable.h"
 #include "Common/File.h"
 
 namespace LuaCxx {
@@ -45,6 +47,10 @@ int State::call(int nargs, int nresults) {
 	int result = lua_pcall(L, nargs, nresults, errHandlerLoc);
 	lua_remove(L, errHandlerLoc);	//remove error handler
 	return result; //return with results on the stack
+}
+	
+GlobalTable State::_G() { 
+	return GlobalTable(this); 
 }
 
 Value State::operator[](const std::string& key) {

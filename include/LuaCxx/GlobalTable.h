@@ -1,16 +1,17 @@
 #pragma once
 
 #include "LuaCxx/Value.h"
+#include "LuaCxx/State.h"
 #include <lua.hpp>
 
 namespace LuaCxx {
 
 struct GlobalTable : public Value {
 protected:
-	static lua_State *pushGlobalTable(lua_State *L);
+	static State* pushGlobalTable(State* state);
 
 public:
-	GlobalTable(lua_State *L);
+	GlobalTable(State* state);
 };
 
 };

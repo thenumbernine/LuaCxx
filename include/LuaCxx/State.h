@@ -1,12 +1,14 @@
 #pragma once
 
-#include "LuaCxx/GlobalTable.h"
 #include "Common/Exception.h"
 #include <lua.hpp>
 #include <string>
 #include <functional>
 
 namespace LuaCxx {
+
+struct GlobalTable;
+struct Value;
 
 struct State {
 protected:
@@ -26,7 +28,7 @@ public:
 	//returns with results on the stack
 	int call(int nargs, int nresults);
 
-	GlobalTable _G() { return GlobalTable(L); }
+	GlobalTable _G();
 	lua_State *getState() { return L; }
 
 	//shorthand for ._G()[]

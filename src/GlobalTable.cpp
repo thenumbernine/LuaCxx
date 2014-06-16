@@ -2,14 +2,15 @@
 
 namespace LuaCxx {
 
-lua_State* GlobalTable::pushGlobalTable(lua_State* L) {
+State* GlobalTable::pushGlobalTable(State* state) {
+	lua_State* L = state->getState();
 	lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
-	return L;
+	return state;
 }
 
 //push the global table onto the stack before constructing the value object
-GlobalTable::GlobalTable(lua_State *L) 
-: Value(pushGlobalTable(L)) 
+GlobalTable::GlobalTable(State* state) 
+: Value(pushGlobalTable(state)) 
 {}
 
 };

@@ -1,5 +1,6 @@
 #include "Common/Test.h"
 #include "LuaCxx/State.h"
+#include "LuaCxx/GlobalTable.h"
 #include <string>
 
 int main() {
@@ -27,6 +28,11 @@ int main() {
 		std::string d;
 		TEST_EQ((lua["d"] >> d).good(), true);
 		TEST_EQ(d, "testing");
+
+		lua.loadString("e = function(a,b,c) return a+b+c end");
+		std::function<int(int,int,int)> e;
+		TEST_EQ((lua["e"] >> e).good(), true);
+		TEST_EQ(e(1,2,4), 7);
 	}
 
 	return 0;
