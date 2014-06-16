@@ -3,7 +3,7 @@
 #include <string>
 #include <lua.hpp>
 
-namespace Lua {
+namespace LuaCxx {
 
 template<typename T> inline T toC(lua_State *L, int loc);
 template<> inline bool toC<bool>(lua_State *L, int loc) { return lua_toboolean(L, loc); }
