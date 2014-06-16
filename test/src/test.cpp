@@ -4,8 +4,7 @@
 #include <string>
 
 int main() {
-	
-	//test loading code and reading values
+	//test loading code and reading optionally-available values
 	{
 		LuaCxx::State lua;
 		
@@ -28,12 +27,42 @@ int main() {
 		std::string d;
 		TEST_EQ((lua["d"] >> d).good(), true);
 		TEST_EQ(d, "testing");
-
-		lua.loadString("e = function(a,b,c) return a+b+c end");
-		std::function<int(int,int,int)> e;
-		TEST_EQ((lua["e"] >> e).good(), true);
-		TEST_EQ(e(1,2,4), 7);
 	}
+
+#if 0
+	//test on reading certainly available values
+	{
+		LuaCxx::State lua;
+		
+		lua.loadString("a = 1");
+		int a = lua["a"];
+		TEST_EQ(a, 1);
+
+		lua.loadString("b = 2.5");
+		double b = lua["b"];
+		TEST_EQ(b, 2.5);
+
+		lua.loadString("c = false");
+		bool c = lua["c"];
+		TEST_EQ(c, false);
+
+		lua.loadString("d = 'testing'");
+		std::string d = lua["d"];
+		TEST_EQ(d, "testing");
+	}
+#endif
+
+	//testing functions
+	{
+		LuaCxx::State lua;
+		//I've only got callbacks working by direct call.
+		// no returning std::function's just yet
+		lua.loadString("function e(a,b,c) return a+b+c end");
+		int e = lua["e"].call<int>(1,2,4);
+		TEST_EQ(e, 7);
+
+	}
+
 
 	return 0;
 }
