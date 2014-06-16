@@ -3,28 +3,29 @@
 #include <string>
 
 int main() {
-	//test reading values
+	
+	//test loading code and reading values
 	{
-		LuaCxx::State L;
+		LuaCxx::State lua;
 		
-		L.loadString("a = 1");
+		lua.loadString("a = 1");
 		int a = -1;
-		TEST_EQ((L._G()["a"] >> a).good(), true);
+		TEST_EQ((lua["a"] >> a).good(), true);
 		TEST_EQ(a, 1);
 
-		L.loadString("b = 2.5");
+		lua.loadString("b = 2.5");
 		double b = -1.;
-		TEST_EQ((L._G()["b"] >> b).good(), true);
+		TEST_EQ((lua["b"] >> b).good(), true);
 		TEST_EQ(b, 2.5);
 
-		L.loadString("c = false");
+		lua.loadString("c = false");
 		bool c = true;
-		TEST_EQ((L._G()["c"] >> c).good(), true);
+		TEST_EQ((lua["c"] >> c).good(), true);
 		TEST_EQ(c, false);
 
-		L.loadString("d = 'testing'");
+		lua.loadString("d = 'testing'");
 		std::string d;
-		TEST_EQ((L._G()["d"] >> d).good(), true);
+		TEST_EQ((lua["d"] >> d).good(), true);
 		TEST_EQ(d, "testing");
 	}
 

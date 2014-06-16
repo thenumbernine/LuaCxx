@@ -47,6 +47,13 @@ int State::call(int nargs, int nresults) {
 	return result; //return with results on the stack
 }
 
+Value State::operator[](const std::string& key) {
+	return _G()[key];
+}
+
+Value State::operator[](int key) {
+	return _G()[key];
+}
 
 };
 

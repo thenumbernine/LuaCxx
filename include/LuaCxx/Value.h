@@ -29,16 +29,16 @@ struct Value {
 
 	std::shared_ptr<Details> details;
 	
-	Value(lua_State *L);
-	Value(const Value &value);
+	Value(lua_State* L);
+	Value(const Value& value);
 	
 	bool good() const;
 	
-	virtual Value operator[](const std::string &key);
+	virtual Value operator[](const std::string& key);
 	virtual Value operator[](int key);
 
 	template<typename T>
-	Value& operator>>(T &result) {
+	Value& operator>>(T& result) {
 		lua_rawgeti(details->L, LUA_REGISTRYINDEX, details->ref);	//v
 		int v = lua_gettop(details->L);
 		if (lua_isnil(details->L, v)) {

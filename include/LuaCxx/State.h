@@ -10,9 +10,9 @@ namespace LuaCxx {
 
 struct State {
 protected:
-	lua_State *L;
+	lua_State* L;
 
-	static int errorHandler(lua_State *);
+	static int errorHandler(lua_State*);
 	
 public:
 	State();
@@ -28,6 +28,10 @@ public:
 
 	GlobalTable _G() { return GlobalTable(L); }
 	lua_State *getState() { return L; }
+
+	//shorthand for ._G()[]
+	virtual Value operator[](const std::string& key);
+	virtual Value operator[](int key);
 };
 
 }
