@@ -3,8 +3,8 @@ DIST_TYPE=lib
 include ../Common/Base.mk
 include ../Tensor/Include.mk
 
-#working
-INCLUDE+=/opt/local/include
+# Lua 5.2
+#INCLUDE+=/opt/local/include
 
-#working on this
-#INCLUDE+=/usr/local/include/luajit-2.0
+# LuaJIT 2.0.3
+INCLUDE+=/usr/local/include/luajit-2.0
