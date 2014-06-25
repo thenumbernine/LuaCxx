@@ -58,7 +58,8 @@ int main() {
 		//I've only got callbacks working by direct call.
 		// no returning std::function's just yet
 		lua.loadString("function e(a,b,c) return a+b+c end");
-		int e = lua["e"].call<int>(1,2,4);
+		int e = -1;
+		TEST_EQ((lua["e"].call(1,2,4) >> e).good(), true);
 		TEST_EQ(e, 7);
 
 	}

@@ -3,6 +3,7 @@
 #include "LuaCxx/toC.h"
 #include "LuaCxx/fromC.h"
 #include "LuaCxx/State.h"
+#include "Common/Meta.h"
 #include <lua.hpp>
 #include <memory>
 #include <string>
@@ -16,13 +17,13 @@ struct State;
 //ref wrapper for a stack location
 
 //used for pushing args on stack
-template<typename Ret, typename... Args>
+template<typename... Args>
 struct ConvertArg {
-	typedef Function<Ret(Args...)> F;
+	typedef TypeVector<Args...> ArgVec;
 	template<int index>
 	struct go {
 		static bool exec(lua_State *L, Args... args) {
-			typedef typename F::template Arg<index> ArgI;
+			typedef typename ArgVec::template Get<index> ArgI;
 			std::tuple<Args...> t = std::make_tuple(args...);
 			ArgI arg = std::get<index>(t);
 			fromC<ArgI>(L, arg);
@@ -72,11 +73,10 @@ struct Value {
 	virtual Value operator[](int key);
 
 	//call
-	template<typename Ret, typename... Args>
-	Ret call(Args... args) {
-		typedef Function<Ret(Args...)> F;
-		enum { numArgs = F::numArgs };
-		int numRet = std::is_same<Ret, void>::value ? 0 : 1;
+	template<typename... Args>
+	Value call(Args... args) {
+		typedef TypeVector<Args...> ArgVec;
+		enum { numArgs = ArgVec::size };
 		
 		lua_State* L = details->state->getState();
 		
@@ -86,27 +86,14 @@ struct Value {
 		if (!lua_isfunction(L,-1)) throw Common::Exception() << "tried to call a non-function";
 
 		//push args on stack
-		ForLoop<0, F::numArgs, ConvertArg<Ret, Args...>::template go>::exec(L, args...);
+		ForLoop<0, ArgVec::size, ConvertArg<Args...>::template go>::exec(L, args...);
 
 		//do the call
-		details->state->call(numArgs, numRet);
+		//only capture 1 argument off the stack 
+		details->state->call(numArgs, 1);
 
-		struct DoNothing {
-			static void go(lua_State*) {}
-		};
-
-		struct ConvertStackTop {
-			static Ret go(lua_State* L) {
-				Ret result = toC<Ret>(L, lua_gettop(L));
-				lua_pop(L,1);
-				return result;
-			}
-		};
-
-		return If<
-			std::is_same<Ret, void>::value,
-			DoNothing,
-			ConvertStackTop>::Type::go(L);
+		//return a ref
+		return Value(details->state);
 	}	
 	
 	//right now I only test for nil
