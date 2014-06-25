@@ -4,53 +4,33 @@
 #include <string>
 
 int main() {
+	//reference tests
+	
 	//test loading code and reading optionally-available values
 	{
 		LuaCxx::State lua;
 		
 		lua.loadString("a = 1");
 		int a = -1;
-		TEST_EQ((lua["a"] >> a).good(), true);
+		TEST_EQ((lua.ref()["a"] >> a).good(), true);
 		TEST_EQ(a, 1);
 
 		lua.loadString("b = 2.5");
 		double b = -1.;
-		TEST_EQ((lua["b"] >> b).good(), true);
+		TEST_EQ((lua.ref()["b"] >> b).good(), true);
 		TEST_EQ(b, 2.5);
 
 		lua.loadString("c = false");
 		bool c = true;
-		TEST_EQ((lua["c"] >> c).good(), true);
+		TEST_EQ((lua.ref()["c"] >> c).good(), true);
 		TEST_EQ(c, false);
 
 		lua.loadString("d = 'testing'");
 		std::string d;
-		TEST_EQ((lua["d"] >> d).good(), true);
+		TEST_EQ((lua.ref()["d"] >> d).good(), true);
 		TEST_EQ(d, "testing");
 	}
 
-#if 0
-	//test on reading certainly available values
-	{
-		LuaCxx::State lua;
-		
-		lua.loadString("a = 1");
-		int a = lua["a"];
-		TEST_EQ(a, 1);
-
-		lua.loadString("b = 2.5");
-		double b = lua["b"];
-		TEST_EQ(b, 2.5);
-
-		lua.loadString("c = false");
-		bool c = lua["c"];
-		TEST_EQ(c, false);
-
-		lua.loadString("d = 'testing'");
-		std::string d = lua["d"];
-		TEST_EQ(d, "testing");
-	}
-#endif
 
 	//testing functions
 	{
@@ -59,12 +39,20 @@ int main() {
 		// no returning std::function's just yet
 		lua.loadString("function e(a,b,c) return a+b+c end");
 		int e = -1;
-		TEST_EQ((lua["e"].call(1,2,4) >> e).good(), true);
+		TEST_EQ((lua.ref()["e"](1,2,4) >> e).good(), true);
 		TEST_EQ(e, 7);
 
 	}
 
-
+	//stack tests
+#if 0	
+	{
+		LuaCxx::State lua;
+		lua.loadString("function e(a,b,c) return a+b+c end");
+		int e = -1;
+		TEST_EQ(lua.get("e")(1,2,3) >> e;
+	}
+#endif
 	return 0;
 }
 

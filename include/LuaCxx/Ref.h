@@ -33,9 +33,8 @@ struct ConvertArg {
 };
 
 /*
-Lua Value
+Lua Ref
 represents a dereference
-TODO call this 'Ref'
 
 how to handle reading values?
 operator= seems intuitive, but what of bad cast or nil values?  throw exception?
@@ -44,7 +43,7 @@ I'll go with operator>>, even though (unlike basic_stream) these won't be chaine
  however if I was representing the lua stack as a class, then chaining would make sense ...
 maybe later I'll change "int index" to "StackRange range" and allow multiple subsequent operator>>'s for multiple return values
 */
-struct Value {
+struct Ref {
 	struct Details {
 		State* state;
 		int ref;
@@ -58,8 +57,8 @@ struct Value {
 
 	std::shared_ptr<Details> details;
 	
-	Value(State* state);
-	Value(const Value& value);
+	Ref(State* state);
+	Ref(const Ref& value);
 
 	//whether the last IO routine was a success
 	bool good() const;
@@ -69,12 +68,12 @@ struct Value {
 	virtual bool isFunction();
 	
 	//dereference
-	virtual Value operator[](const std::string& key);
-	virtual Value operator[](int key);
+	virtual Ref operator[](const std::string& key);
+	virtual Ref operator[](int key);
 
 	//call
 	template<typename... Args>
-	Value call(Args... args) {
+	Ref operator()(Args... args) {
 		typedef TypeVector<Args...> ArgVec;
 		enum { numArgs = ArgVec::size };
 		
@@ -93,17 +92,17 @@ struct Value {
 		details->state->call(numArgs, 1);
 
 		//return a ref
-		return Value(details->state);
+		return Ref(details->state);
 	}	
 	
 	//right now I only test for nil
 	//I should test for valid conversion of types as well
 	template<typename T>
-	Value& operator>>(T& result);
+	Ref& operator>>(T& result);
 };
 
 template<typename T>
-Value& Value::operator>>(T& result) {
+Ref& Ref::operator>>(T& result) {
 	lua_State* L = details->state->getState();
 	lua_rawgeti(L, LUA_REGISTRYINDEX, details->ref);	//v
 	int v = lua_gettop(L);

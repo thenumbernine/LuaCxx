@@ -40,7 +40,7 @@ inline std::string toC<std::string>(lua_State* L, int loc) {
 // because there's no guarantee that the stack object will stick around.
 //I could rewrite all other types to accept refs, but that would mean extra pushes and pops of values to test for nil.
 // I could rethink nil handling of all types, and all conversions for that matter.
-//For now I'll specialize the Value operators for functions
+//For now I'll specialize the Ref operators for functions
 // and not support toC<std::function<()>>.
 
 };

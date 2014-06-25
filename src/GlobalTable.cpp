@@ -16,7 +16,7 @@ State* GlobalTable::pushGlobalTable(State* state) {
 
 //push the global table onto the stack before constructing the value object
 GlobalTable::GlobalTable(State* state) 
-: Value(pushGlobalTable(state)) 
+: Ref(pushGlobalTable(state)) 
 {}
 
 };

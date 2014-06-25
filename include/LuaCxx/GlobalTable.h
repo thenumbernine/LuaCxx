@@ -1,12 +1,12 @@
 #pragma once
 
-#include "LuaCxx/Value.h"
+#include "LuaCxx/Ref.h"
 #include "LuaCxx/State.h"
 #include <lua.hpp>
 
 namespace LuaCxx {
 
-struct GlobalTable : public Value {
+struct GlobalTable : public Ref {
 protected:
 	static State* pushGlobalTable(State* state);
 

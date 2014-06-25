@@ -8,7 +8,7 @@
 namespace LuaCxx {
 
 struct GlobalTable;
-struct Value;
+struct Ref;
 
 struct State {
 protected:
@@ -28,12 +28,10 @@ public:
 	//returns with results on the stack
 	int call(int nargs, int nresults);
 
-	GlobalTable _G();
 	lua_State *getState() { return L; }
 
-	//shorthand for ._G()[]
-	virtual Value operator[](const std::string& key);
-	virtual Value operator[](int key);
+	//reference to global table - base for all subsequent references
+	GlobalTable ref();
 };
 
 }
