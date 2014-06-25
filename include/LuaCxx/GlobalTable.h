@@ -1,10 +1,11 @@
 #pragma once
 
 #include "LuaCxx/Ref.h"
-#include "LuaCxx/State.h"
 #include <lua.hpp>
 
 namespace LuaCxx {
+
+struct State;
 
 struct GlobalTable : public Ref {
 protected:
