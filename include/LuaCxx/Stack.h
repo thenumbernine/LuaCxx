@@ -142,5 +142,11 @@ public:
 	int top();
 };
 
+template<>
+inline Stack& Stack::pop() {
+	lua_pop(state->getState(), 1);
+	return *this;
+}
+
 }
 

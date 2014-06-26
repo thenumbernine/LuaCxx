@@ -127,6 +127,41 @@ int main() {
 			.call(3,3)
 			.pop(a,b,c);
 		}
+
+		//return nested tables
+		{
+			lua.loadString("function e(a,b,c) return {a={a}, b={{b}}, c={{{c}}}} end");
+			int a = -1;
+			int b = -1; 
+			int c = -1;
+			stack
+			.getGlobal("e")	//e
+			.push(1,2,3)	//e 1 2 3
+			.call(3,1)		//t
+			.get("a")		//t {a}
+			.get(1)			//t {a} a
+			.pop(a);		//t {a}
+			TEST_EQ(a, 1);
+			stack
+			.pop()			//t
+			.get("b")		//t {{b}}
+			.get(1)			//t {{b}} {b}
+			.get(1)			//t {{b}} {b} b
+			.pop(b);		//t {{b}} {b}
+			TEST_EQ(b, 2);
+			stack
+			.pop()			//t {{b}}
+			.pop()			//t
+			.get("c")
+			.get(1)
+			.get(1)
+			.get(1)
+			.pop(c)
+			.pop()
+			.pop()
+			.pop();
+			TEST_EQ(c, 3);
+		}
 	}
 	return 0;
 }
