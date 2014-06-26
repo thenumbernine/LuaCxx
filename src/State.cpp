@@ -1,6 +1,7 @@
 #include "LuaCxx/State.h"
 #include "LuaCxx/Ref.h"
 #include "LuaCxx/GlobalTable.h"
+#include "LuaCxx/Stack.h"
 #include "Common/File.h"
 
 namespace LuaCxx {
@@ -51,6 +52,10 @@ int State::call(int nargs, int nresults) {
 	
 GlobalTable State::ref() { 
 	return GlobalTable(this); 
+}
+
+Stack State::stack() {
+	return Stack(this);
 }
 
 };

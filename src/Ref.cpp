@@ -36,25 +36,5 @@ bool Ref::isFunction() {
 	return isFunction;
 }
 
-Ref Ref::operator[](const std::string &key) {
-	lua_State* L = details->state->getState();
-	lua_rawgeti(L, LUA_REGISTRYINDEX, details->ref);	//t
-	int t = lua_gettop(L);
-	lua_pushlstring(L, key.c_str(), key.length());	//t k
-	lua_gettable(L, t);	//t v
-	lua_remove(L, t);	//v
-	return Ref(details->state);
-}
-
-Ref Ref::operator[](int key) {
-	lua_State* L = details->state->getState();
-	lua_rawgeti(L, LUA_REGISTRYINDEX, details->ref);	//t
-	int t = lua_gettop(L);
-	lua_pushinteger(L, key);	//t k
-	lua_gettable(L, t);	//t v
-	lua_remove(L, t);	//v
-	return Ref(details->state);
-}
-
 };
 

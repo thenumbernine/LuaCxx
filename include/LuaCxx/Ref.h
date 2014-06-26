@@ -3,6 +3,7 @@
 #include "LuaCxx/toC.h"
 #include "LuaCxx/fromC.h"
 #include "LuaCxx/State.h"
+#include "LuaCxx/Stack.h"
 #include "Common/Meta.h"
 #include <lua.hpp>
 #include <memory>
@@ -15,22 +16,6 @@ namespace LuaCxx {
 struct State;
 
 //ref wrapper for a stack location
-
-//used for pushing args on stack
-template<typename... Args>
-struct ConvertArg {
-	typedef TypeVector<Args...> ArgVec;
-	template<int index>
-	struct go {
-		static bool exec(lua_State *L, Args... args) {
-			typedef typename ArgVec::template Get<index> ArgI;
-			std::tuple<Args...> t = std::make_tuple(args...);
-			ArgI arg = std::get<index>(t);
-			fromC<ArgI>(L, arg);
-			return false;
-		}
-	};
-};
 
 /*
 Lua Ref
@@ -66,10 +51,28 @@ struct Ref {
 	//type testing
 	virtual bool isNil();
 	virtual bool isFunction();
-	
+
+	//When using the templaed method the compiler gets confused with const char's
+	//so hide it behind explicitly prototyped operator[]'s -- to allow the compiler to coerce types correctly
+	//This also serves for explicit getting of a particular type.  Useful for bool, which the compiler doesn't like to deduce correctly.
+	template<typename T>
+	Ref get(const T& key) {
+		lua_State* L = details->state->getState();
+		lua_rawgeti(L, LUA_REGISTRYINDEX, details->ref);	//t
+		int t = lua_gettop(L);
+		fromC<T>(L, key);	//t k
+		lua_gettable(L, t);	//t v
+		lua_remove(L, t);	//v
+		return Ref(details->state);
+	}
+
 	//dereference
-	virtual Ref operator[](const std::string& key);
-	virtual Ref operator[](int key);
+	virtual Ref operator[](int key) { return get<int>(key); }
+	virtual Ref operator[](double key) { return get<double>(key); }
+	virtual Ref operator[](const std::string& key) { return get<std::string>(key); }
+	//Speaking of type coercion, defining operator[](bool) also gets coerced from char* before std::string does
+	// so defining this causes lua to try to handle the key as a bool rather than a string 
+	//virtual Ref operator[](bool key) { return get<bool>(key); }
 
 	//call
 	template<typename... Args>
@@ -85,7 +88,7 @@ struct Ref {
 		if (!lua_isfunction(L,-1)) throw Common::Exception() << "tried to call a non-function";
 
 		//push args on stack
-		ForLoop<0, ArgVec::size, ConvertArg<Args...>::template go>::exec(L, args...);
+		ForLoop<0, ArgVec::size, PushArgs<Args...>::template go>::exec(L, args...);
 
 		//do the call
 		//only capture 1 argument off the stack 

@@ -7,8 +7,9 @@
 
 namespace LuaCxx {
 
-struct GlobalTable;
 struct Ref;
+struct GlobalTable;
+struct Stack;
 
 struct State {
 protected:
@@ -32,6 +33,8 @@ public:
 
 	//reference to global table - base for all subsequent references
 	GlobalTable ref();
+
+	Stack stack();
 };
 
 }
