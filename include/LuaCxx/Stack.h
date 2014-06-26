@@ -98,10 +98,9 @@ public:
 		return *this;
 	}
 
-	//get a key from the table at the top of the stack
-	// and push it onto the stack
+	//templated
 	template<typename T>
-	Stack& get(const T& key, int tableLoc = -1) {
+	Stack& getType(const T& key, int tableLoc = -1) {
 		lua_State* L = state->getState();
 		lua_pushvalue(L, tableLoc);	//t
 		fromC<T>(L, key);	//t k
@@ -109,6 +108,12 @@ public:
 		lua_remove(L, -2);	//v
 		return *this;
 	}
+
+	//get a key from the table at the top of the stack
+	// and push it onto the stack
+	Stack& get(int key, int tableLoc = -1) { return getType<int>(key, tableLoc); }
+	Stack& get(double key, int tableLoc = -1) { return getType<double>(key, tableLoc); }
+	Stack& get(const std::string& key, int tableLoc = -1) { return getType<std::string>(key, tableLoc); }
 
 	//get a key from the global table and push it into the stack
 	template<typename T>
