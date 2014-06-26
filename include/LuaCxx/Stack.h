@@ -112,6 +112,7 @@ public:
 	//get a key from the table at the top of the stack
 	// and push it onto the stack
 	Stack& get(int key, int tableLoc = -1) { return getType<int>(key, tableLoc); }
+	Stack& get(float key, int tableLoc = -1) { return getType<float>(key, tableLoc); }
 	Stack& get(double key, int tableLoc = -1) { return getType<double>(key, tableLoc); }
 	Stack& get(const std::string& key, int tableLoc = -1) { return getType<std::string>(key, tableLoc); }
 
@@ -133,6 +134,7 @@ public:
 
 	Stack& getGlobal(const std::string& key) { return getGlobalType<std::string>(key); }
 	Stack& getGlobal(int key) { return getGlobalType<int>(key); }
+	Stack& getGlobal(float key) { return getGlobalType<float>(key); }
 	Stack& getGlobal(double key) { return getGlobalType<double>(key); }
 
 	//performs a lua call

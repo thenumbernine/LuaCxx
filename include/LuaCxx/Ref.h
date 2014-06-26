@@ -68,6 +68,7 @@ struct Ref {
 
 	//dereference
 	virtual Ref operator[](int key) { return get<int>(key); }
+	virtual Ref operator[](float key) { return get<float>(key); }
 	virtual Ref operator[](double key) { return get<double>(key); }
 	virtual Ref operator[](const std::string& key) { return get<std::string>(key); }
 	//Speaking of type coercion, defining operator[](bool) also gets coerced from char* before std::string does
