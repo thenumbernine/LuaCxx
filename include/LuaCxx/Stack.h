@@ -109,7 +109,7 @@ public:
 		return *this;
 	}
 
-	//get a key from the table at the top of the stack
+	//get a key from the table location (default at the top of the stack)
 	// and push it onto the stack
 	Stack& get(int key, int tableLoc = -1) { return getType<int>(key, tableLoc); }
 	Stack& get(float key, int tableLoc = -1) { return getType<float>(key, tableLoc); }
@@ -124,8 +124,9 @@ public:
 #elif LUA_VERSION_NUM == 502
 		lua_State* L = state->getState();
 		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
-		get<T>(key);
-		lua_pop(L, 1);
+		int global = lua_gettop(L);
+		get(key, global);
+		lua_remove(L, global);
 #else
 #error unknown Lua version
 #endif
