@@ -19,7 +19,7 @@ State::~State() {
 	
 int State::errorHandler(lua_State *L) {
 	std::ostringstream ss;
-	ss << "lua error " << lua_tostring(L, -1) << "\n";
+	ss << "lua error\n" << lua_tostring(L, -1) << "\n";
 	lua_getglobal(L, "debug");	//debug
 	lua_getfield(L, lua_gettop(L), "traceback");	//debug, debug.traceback
 	lua_remove(L, lua_gettop(L)-1);	//debug.traceback
