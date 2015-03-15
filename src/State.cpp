@@ -18,21 +18,29 @@ State::~State() {
 }
 	
 int State::errorHandler(lua_State *L) {
-	throw Common::Exception() << "lua error " << lua_tostring(L, -1);
+	std::ostringstream ss;
+	ss << "lua error " << lua_tostring(L, -1) << "\n";
+	lua_getglobal(L, "debug");	//debug
+	lua_getfield(L, lua_gettop(L), "traceback");	//debug, debug.traceback
+	lua_remove(L, lua_gettop(L)-1);	//debug.traceback
+	lua_call(L, 0, 1);	//traceback-results
+	ss << lua_tostring(L, -1);
+	lua_pop(L,1);
+	throw Common::Exception() << ss.str();
 }
 
-State &State::loadFile(const std::string& filename) {
+State& State::loadFile(const std::string& filename) {
 	luaL_loadfile(L, filename.c_str());
 	if (!lua_isfunction(L, lua_gettop(L))) throw Common::Exception() << "failed to load file " << filename << " with error " << lua_tostring(L,-1);
 	call(0,0);
 	return *this;
 }
 
-State &State::loadString(const std::string& str) {
+State& State::loadString(const std::string& str) {
 	return runString(str, 0, 0);
 }
-	
-State &State::runString(const std::string &str, int narg, int nret) {
+
+State& State::runString(const std::string& str, int narg, int nret) {
 	luaL_loadstring(L, str.c_str());
 	if (!lua_isfunction(L, lua_gettop(L))) throw Common::Exception() << "failed to load string " << str << " with error " << lua_tostring(L, -1);
 	call(narg, nret);
