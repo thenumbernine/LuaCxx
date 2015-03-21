@@ -49,8 +49,18 @@ struct Ref {
 	bool good() const;
 
 	//type testing
-	virtual bool isNil();
+	virtual bool isBoolean();
+	virtual bool isCFunction();
 	virtual bool isFunction();
+	virtual bool isLightUserData();
+	virtual bool isNil();
+	virtual bool isNone();
+	virtual bool isNoneOrNil();
+	virtual bool isNumber();
+	virtual bool isString();
+	virtual bool isTable();
+	virtual bool isThread();
+	virtual bool isUserData();
 
 	//When using the templaed method the compiler gets confused with const char's
 	//so hide it behind explicitly prototyped operator[]'s -- to allow the compiler to coerce types correctly
