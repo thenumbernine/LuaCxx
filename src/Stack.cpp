@@ -21,7 +21,7 @@ Stack::Stack(Stack&& other) {
 }
 
 Stack::~Stack() {
-	if (&state) lua_settop(state->getState(), topIndex);
+	if (state) lua_settop(state->getState(), topIndex);
 }
 	
 Stack& Stack::call(int nargs, int nret) {
