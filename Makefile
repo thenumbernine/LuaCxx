@@ -7,7 +7,7 @@ include Config.mk
 
 # Lua 5.2
 ifdef LUACXX_USE_LUA_5_2
-INCLUDE+=/opt/local/include
+INCLUDE+=/usr/local/include
 endif
 
 # LuaJIT 2.0.3
