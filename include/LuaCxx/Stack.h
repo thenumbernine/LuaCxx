@@ -121,7 +121,7 @@ public:
 	Stack& getGlobalType(const T& key) {
 #if LUA_VERSION_NUM == 501
 		get(key, LUA_GLOBALSINDEX);
-#elif LUA_VERSION_NUM == 502
+#elif LUA_VERSION_NUM >= 502
 		lua_State* L = state->getState();
 		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
 		int global = lua_gettop(L);
