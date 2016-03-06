@@ -54,9 +54,10 @@ bool Ref::isUserData() { return testType<lua_isuserdata>(details->state->getStat
 
 int Ref::len() {
 	lua_State* L = details->state->getState();
-	lua_len(L, details->ref);
-	int len = toC<int>(L, lua_gettop(L));
-	lua_pop(L, 1);
+	lua_rawgeti(L, LUA_REGISTRYINDEX, details->ref);
+	lua_len(L, -1);
+	int len = toC<int>(L, -1);
+	lua_pop(L, 2);
 	return len;
 }
 

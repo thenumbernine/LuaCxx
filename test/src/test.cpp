@@ -162,6 +162,18 @@ int main() {
 			.pop();
 			TEST_EQ(c, 3);
 		}
+
+		//table lengths
+		{
+			lua.loadString("t = {}");
+			TEST_EQ(lua.ref()["t"].len(), 0);
+			
+			lua.loadString("t = {'a'}");
+			TEST_EQ(lua.ref()["t"].len(), 1);
+			
+			lua.loadString("t = {'a', 'b'}");
+			TEST_EQ(lua.ref()["t"].len(), 2);
+		}
 	}
 	return 0;
 }
