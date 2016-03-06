@@ -108,7 +108,10 @@ struct Ref {
 		//return a ref
 		return Ref(details->state);
 	}	
-	
+
+	//length
+	int len();
+
 	//right now I only test for nil
 	//I should test for valid conversion of types as well
 	template<typename T>

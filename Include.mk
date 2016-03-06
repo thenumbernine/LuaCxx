@@ -5,10 +5,10 @@ include $(LUACXX_PATH)Config.mk
 INCLUDE+=$(LUACXX_PATH)include
 DYNAMIC_LIBS+=$(LUACXX_PATH)dist/$(PLATFORM)/$(BUILD)/libLuaCxx$(LIB_SUFFIX)
 
-# Lua 5.2
-ifdef LUACXX_USE_LUA_5_2
-DYNAMIC_LIBS+=/usr/local/lib/liblua.so
-INCLUDE+=/usr/local/include
+# Lua 5.3
+ifdef LUACXX_USE_LUA_5_3
+DYNAMIC_LIBS+=$(HOME)/lib/liblua.so
+INCLUDE+=$(HOME)/include
 endif
 
 # LuaJIT 2.0.3

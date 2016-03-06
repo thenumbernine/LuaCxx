@@ -52,5 +52,13 @@ bool Ref::isTable() { return testType<_lua_istable>(details->state->getState(), 
 bool Ref::isThread() { return testType<_lua_isthread>(details->state->getState(), details->ref); }
 bool Ref::isUserData() { return testType<lua_isuserdata>(details->state->getState(), details->ref); }
 
+int Ref::len() {
+	lua_State* L = details->state->getState();
+	lua_len(L, details->ref);
+	int len = toC<int>(L, lua_gettop(L));
+	lua_pop(L, 1);
+	return len;
+}
+
 };
 
