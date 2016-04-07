@@ -117,9 +117,10 @@ struct Ref {
 	Ref& operator>>(T& result);
 
 	//Cast operators, for the daring, who want to assign directly without testing .good()
-	//I don't want to return a default value on fail, so I'll just have it throw exceptions. 
-	operator int() {
-		int result;
+	//I don't want to return a default value on fail, so I'll just have it throw exceptions.
+	template<typename T>
+	operator T() {
+		T result;
 		(*this) >> result;
 		if (!good()) throw Common::Exception() << "failed to convert to int";
 		return result;

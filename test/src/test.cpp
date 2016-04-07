@@ -12,24 +12,18 @@ int main() {
 		LuaCxx::State lua;
 		
 		lua.loadString("a = 1");
-		int a = -1;
-		TEST_EQ((lua["a"] >> a).good(), true);
-		TEST_EQ(a, 1);
+		TEST_EQ((int)lua["a"], 1);
 
 		lua.loadString("b = 2.5");
-		double b = -1.;
-		TEST_EQ((lua["b"] >> b).good(), true);
-		TEST_EQ(b, 2.5);
+		TEST_EQ((double)lua["b"], 2.5);
 
 		lua.loadString("c = false");
-		bool c = true;
-		TEST_EQ((lua["c"] >> c).good(), true);
-		TEST_EQ(c, false);
+		TEST_EQ((bool)lua["c"], false);
 
 		lua.loadString("d = 'testing'");
-		std::string d;
-		TEST_EQ((lua["d"] >> d).good(), true);
-		TEST_EQ(d, "testing");
+		//this fails to build ...
+		//TEST_EQ((std::string)lua["d"], "testing");
+		TEST_EQ(lua["d"].operator std::string(), "testing");
 	}
 
 
@@ -39,10 +33,7 @@ int main() {
 		//I've only got callbacks working by direct call.
 		// no returning std::function's just yet
 		lua.loadString("function e(a,b,c) return a+b+c end");
-		int e = -1;
-		TEST_EQ((lua["e"](1,2,4) >> e).good(), true);
-		TEST_EQ(e, 7);
-
+		TEST_EQ((int)lua["e"](1,2,4), 7);
 	}
 
 	//stack tests
