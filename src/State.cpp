@@ -73,5 +73,4 @@ template<> Ref State::operator[](double key) { return ref()[key]; }
 template<> Ref State::operator[](const char* key) { return ref()[key]; }
 template<> Ref State::operator[](const std::string& key) { return ref()[key]; }
 
-};
-
+}

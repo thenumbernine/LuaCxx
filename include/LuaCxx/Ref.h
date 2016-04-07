@@ -64,7 +64,7 @@ struct Ref {
 	//so hide it behind explicitly prototyped operator[]'s -- to allow the compiler to coerce types correctly
 	//This also serves for explicit getting of a particular type.  Useful for bool, which the compiler doesn't like to deduce correctly.
 	template<typename T>
-	Ref get(const T& key) {
+	Ref get(T key) {
 		lua_State* L = details->state->getState();
 		lua_rawgeti(L, LUA_REGISTRYINDEX, details->ref);	//t
 		int t = lua_gettop(L);
@@ -78,6 +78,7 @@ struct Ref {
 	virtual Ref operator[](int key) { return get<int>(key); }
 	virtual Ref operator[](float key) { return get<float>(key); }
 	virtual Ref operator[](double key) { return get<double>(key); }
+	virtual Ref operator[](const char* key) { return get<const char*>(key); }
 	virtual Ref operator[](const std::string& key) { return get<std::string>(key); }
 	//Speaking of type coercion, defining operator[](bool) also gets coerced from char* before std::string does
 	// so defining this causes lua to try to handle the key as a bool rather than a string 
@@ -114,6 +115,15 @@ struct Ref {
 	//I should test for valid conversion of types as well
 	template<typename T>
 	Ref& operator>>(T& result);
+
+	//Cast operators, for the daring, who want to assign directly without testing .good()
+	//I don't want to return a default value on fail, so I'll just have it throw exceptions. 
+	operator int() {
+		int result;
+		(*this) >> result;
+		if (!good()) throw Common::Exception() << "failed to convert to int";
+		return result;
+	}
 };
 
 template<typename T>
