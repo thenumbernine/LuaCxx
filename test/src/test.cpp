@@ -13,22 +13,22 @@ int main() {
 		
 		lua.loadString("a = 1");
 		int a = -1;
-		TEST_EQ((lua.ref()["a"] >> a).good(), true);
+		TEST_EQ((lua["a"] >> a).good(), true);
 		TEST_EQ(a, 1);
 
 		lua.loadString("b = 2.5");
 		double b = -1.;
-		TEST_EQ((lua.ref()["b"] >> b).good(), true);
+		TEST_EQ((lua["b"] >> b).good(), true);
 		TEST_EQ(b, 2.5);
 
 		lua.loadString("c = false");
 		bool c = true;
-		TEST_EQ((lua.ref()["c"] >> c).good(), true);
+		TEST_EQ((lua["c"] >> c).good(), true);
 		TEST_EQ(c, false);
 
 		lua.loadString("d = 'testing'");
 		std::string d;
-		TEST_EQ((lua.ref()["d"] >> d).good(), true);
+		TEST_EQ((lua["d"] >> d).good(), true);
 		TEST_EQ(d, "testing");
 	}
 
@@ -40,7 +40,7 @@ int main() {
 		// no returning std::function's just yet
 		lua.loadString("function e(a,b,c) return a+b+c end");
 		int e = -1;
-		TEST_EQ((lua.ref()["e"](1,2,4) >> e).good(), true);
+		TEST_EQ((lua["e"](1,2,4) >> e).good(), true);
 		TEST_EQ(e, 7);
 
 	}
@@ -166,13 +166,13 @@ int main() {
 		//table lengths
 		{
 			lua.loadString("t = {}");
-			TEST_EQ(lua.ref()["t"].len(), 0);
+			TEST_EQ(lua["t"].len(), 0);
 			
 			lua.loadString("t = {'a'}");
-			TEST_EQ(lua.ref()["t"].len(), 1);
+			TEST_EQ(lua["t"].len(), 1);
 			
 			lua.loadString("t = {'a', 'b'}");
-			TEST_EQ(lua.ref()["t"].len(), 2);
+			TEST_EQ(lua["t"].len(), 2);
 		}
 	}
 	return 0;

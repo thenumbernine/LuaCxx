@@ -23,4 +23,3 @@ DYNAMIC_LIBS+=/usr/local/lib/libluajit-5.1.2.0.3$(LIB_SUFFIX)
 INCLUDE+=/usr/local/include/luajit-2.0
 LDFLAGS_osx_app+=-pagezero_size 10000 -image_base 100000000
 endif
-

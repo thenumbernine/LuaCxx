@@ -7,9 +7,9 @@
 
 namespace LuaCxx {
 
-struct Ref;
 struct GlobalTable;
 struct Stack;
+struct Ref;
 
 struct State {
 protected:
@@ -35,7 +35,14 @@ public:
 	GlobalTable ref();
 
 	Stack stack();
+
+	//shorthand for lua.ref()[...]
+	//tell me if this is unintuitive or a bad idea
+	//template<typename T> Ref operator[](T key) { return lua.ref()[key]; }
+	//...but I can't just yet because of include circular dependencies
+	//...that might not be able to resolve until I separate struct prototypes from inline header bodies (.h vs .hpp)
+	//in the mean time, I can still add individual template bodies to the .cpp file
+	template<typename T> Ref operator[](T key);
 };
 
 }
-

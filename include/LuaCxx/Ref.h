@@ -13,8 +13,6 @@
 
 namespace LuaCxx {
 
-struct State;
-
 //ref wrapper for a stack location
 
 /*
@@ -133,5 +131,4 @@ Ref& Ref::operator>>(T& result) {
 	return *this;
 }
 
-};
-
+}

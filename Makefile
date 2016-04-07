@@ -14,4 +14,3 @@ endif
 ifdef LUACXX_USE_LUAJIT_2_0_4
 INCLUDE+=/usr/local/include/luajit-2.0
 endif
-

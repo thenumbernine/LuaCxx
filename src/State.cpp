@@ -66,5 +66,12 @@ Stack State::stack() {
 	return Stack(this);
 }
 
+//must have one for each instance of Ref::operator[]
+template<> Ref State::operator[](int key) { return ref()[key]; }
+template<> Ref State::operator[](float key) { return ref()[key]; }
+template<> Ref State::operator[](double key) { return ref()[key]; }
+template<> Ref State::operator[](const char* key) { return ref()[key]; }
+template<> Ref State::operator[](const std::string& key) { return ref()[key]; }
+
 };
 

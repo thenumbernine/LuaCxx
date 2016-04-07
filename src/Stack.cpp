@@ -34,4 +34,3 @@ int Stack::top() {
 }
 
 }
-
