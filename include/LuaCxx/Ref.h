@@ -27,6 +27,9 @@ I'll go with operator>>, even though (unlike basic_stream) these won't be chaine
 maybe later I'll change "int index" to "StackRange range" and allow multiple subsequent operator>>'s for multiple return values
 */
 struct Ref {
+	//iterators, for lua_next() iteration
+	struct iterator;
+	
 	struct Details {
 		State* state;
 		int ref;
@@ -36,6 +39,11 @@ struct Ref {
 		//pops value from stack
 		Details(State *state_);
 		virtual ~Details();
+	
+	protected:
+		void push();	//push this onto the stack
+		friend struct Ref;
+		friend struct Ref::iterator;
 	};
 
 	std::shared_ptr<Details> details;
@@ -65,8 +73,8 @@ struct Ref {
 	//This also serves for explicit getting of a particular type.  Useful for bool, which the compiler doesn't like to deduce correctly.
 	template<typename T>
 	Ref get(T key) {
+		details->push();
 		lua_State* L = details->state->getState();
-		lua_rawgeti(L, LUA_REGISTRYINDEX, details->ref);	//t
 		int t = lua_gettop(L);
 		fromC<T>(L, key);	//t k
 		lua_gettable(L, t);	//t v
@@ -90,11 +98,9 @@ struct Ref {
 		typedef TypeVector<Args...> ArgVec;
 		enum { numArgs = ArgVec::size };
 		
-		lua_State* L = details->state->getState();
+		details->push();
 		
-		//push function onto stack
-		lua_rawgeti(L, LUA_REGISTRYINDEX, details->ref);
-
+		lua_State* L = details->state->getState();
 		if (!lua_isfunction(L,-1)) throw Common::Exception() << "tried to call a non-function";
 
 		//push args on stack
@@ -116,6 +122,9 @@ struct Ref {
 	template<typename T>
 	Ref& operator>>(T& result);
 
+	bool operator==(const Ref& other) const;
+	bool operator!=(const Ref& other) const;
+
 	//Cast operators, for the daring, who want to assign directly without testing .good()
 	//I don't want to return a default value on fail, so I'll just have it throw exceptions.
 	template<typename T>
@@ -125,12 +134,34 @@ struct Ref {
 		if (!good()) throw Common::Exception() << "failed to convert to int";
 		return result;
 	}
+	
+	iterator begin();
+
+	/*
+	the 'end' iterator is using -1 as the table key as to not equate it with any lua_gettop() legitimate tables
+	don't forget that - despite representing an invalid table - this is still a valid lua pseudo-index
+	
+	TODO get Ref::operator== working, then at least have the table match up, so for a!=b, a.end()!=b.end()
+	*/
+	iterator end();
+};
+
+struct Ref::iterator {
+	//need null ctors for end() iterator... 
+	State* state;
+	Ref value, key, table;	// must be in this order, for ctors to operate in this order, for stack popping / ref generation to work in this order
+	bool done;
+
+	iterator(State* state_, bool done_);
+	bool operator==(const iterator& other);
+	bool operator!=(const iterator& other);
+	iterator& operator++();
 };
 
 template<typename T>
 Ref& Ref::operator>>(T& result) {
+	details->push();	//v
 	lua_State* L = details->state->getState();
-	lua_rawgeti(L, LUA_REGISTRYINDEX, details->ref);	//v
 	int v = lua_gettop(L);
 	if (lua_isnil(L, v)) {
 		details->good = false;

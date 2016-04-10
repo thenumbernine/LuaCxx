@@ -3,6 +3,7 @@
 #include "LuaCxx/GlobalTable.h"
 #include "LuaCxx/Stack.h"
 #include <string>
+#include <cassert>
 
 int main() {
 	//reference tests
@@ -11,16 +12,16 @@ int main() {
 	{
 		LuaCxx::State lua;
 		
-		lua.loadString("a = 1");
+		lua << "a = 1";
 		TEST_EQ((int)lua["a"], 1);
 
-		lua.loadString("b = 2.5");
+		lua << "b = 2.5";
 		TEST_EQ((double)lua["b"], 2.5);
 
-		lua.loadString("c = false");
+		lua << "c = false";
 		TEST_EQ((bool)lua["c"], false);
 
-		lua.loadString("d = 'testing'");
+		lua << "d = 'testing'";
 		//this fails to build ...
 		//TEST_EQ((std::string)lua["d"], "testing");
 		TEST_EQ(lua["d"].operator std::string(), "testing");
@@ -32,8 +33,51 @@ int main() {
 		LuaCxx::State lua;
 		//I've only got callbacks working by direct call.
 		// no returning std::function's just yet
-		lua.loadString("function e(a,b,c) return a+b+c end");
+		lua << "function e(a,b,c) return a+b+c end";
 		TEST_EQ((int)lua["e"](1,2,4), 7);
+	}
+
+	//table lengths
+	{
+		LuaCxx::State lua;
+		
+		lua << "t = {}";
+		TEST_EQ(lua["t"].len(), 0);
+		
+		lua << "t = {'a'}";
+		TEST_EQ(lua["t"].len(), 1);
+		
+		lua << "t = {'a', 'b'}";
+		TEST_EQ(lua["t"].len(), 2);
+	}
+
+	//ref eq/ne
+	{
+		LuaCxx::State lua;
+		lua << "t = {}";
+		LuaCxx::Ref t1 = lua["t"];
+		LuaCxx::Ref t2 = lua["t"];
+		//verify equality from separate references works
+		TEST_EQ(t1 == t2, true);
+		TEST_EQ(t1 != t2, false);
+
+		lua << "s = {}";
+		LuaCxx::Ref s = lua["s"];
+		//verify inequality works
+		TEST_EQ(t1 == s, false);
+		TEST_EQ(t1 != s, true);
+		TEST_EQ(t2 == s, false);
+		TEST_EQ(t2 != s, true);
+	}
+
+	//iterators
+	{
+		LuaCxx::State lua;
+		lua << "t = {a=1, b=2, c=3}";
+		LuaCxx::Ref t = lua["t"];
+		for (LuaCxx::Ref::iterator iter = t.begin(); iter != t.end(); ++iter) {
+			std::cout << iter.key.operator std::string() << " = " << (int)iter.value << std::endl;
+		}
 	}
 
 	//stack tests
@@ -74,7 +118,7 @@ int main() {
 		//popping globals
 		{
 			int a = -1;
-			lua.loadString("a = 3");
+			lua << "a = 3";
 			stack.getGlobal("a");
 			TEST_EQ(stack.top(), 1);
 			stack >> a;
@@ -85,7 +129,7 @@ int main() {
 		//single return values
 		{
 			int a = -1;
-			lua.loadString("function c(a,b,c) return a+b+c end");
+			lua << "function c(a,b,c) return a+b+c end";
 			stack.getGlobal("c") << 1 << 2 << 3;
 			TEST_EQ(stack.top(), 4);
 			stack.call(3,1);
@@ -108,7 +152,7 @@ int main() {
 
 		//concise multiple return values
 		{
-			lua.loadString("function d(a,b,c) return b+c, c+a, a+b end");
+			lua << "function d(a,b,c) return b+c, c+a, a+b end";
 			int a = -1;
 			int b = -1;
 			int c = -1;
@@ -121,7 +165,7 @@ int main() {
 
 		//return nested tables
 		{
-			lua.loadString("function e(a,b,c) return {a={a}, b={{b}}, c={{{c}}}} end");
+			lua << "function e(a,b,c) return {a={a}, b={{b}}, c={{{c}}}} end";
 			int a = -1;
 			int b = -1; 
 			int c = -1;
@@ -152,18 +196,6 @@ int main() {
 			.pop()
 			.pop();
 			TEST_EQ(c, 3);
-		}
-
-		//table lengths
-		{
-			lua.loadString("t = {}");
-			TEST_EQ(lua["t"].len(), 0);
-			
-			lua.loadString("t = {'a'}");
-			TEST_EQ(lua["t"].len(), 1);
-			
-			lua.loadString("t = {'a', 'b'}");
-			TEST_EQ(lua["t"].len(), 2);
 		}
 	}
 	return 0;
