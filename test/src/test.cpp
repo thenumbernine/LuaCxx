@@ -24,7 +24,7 @@ int main() {
 		lua << "d = 'testing'";
 		//this fails to build ...
 		//TEST_EQ((std::string)lua["d"], "testing");
-		TEST_EQ(lua["d"].operator std::string(), "testing");
+		TEST_EQ((std::string)lua["d"], "testing");
 	}
 
 
@@ -76,7 +76,7 @@ int main() {
 		lua << "t = {a=1, b=2, c=3}";
 		LuaCxx::Ref t = lua["t"];
 		for (LuaCxx::Ref::iterator iter = t.begin(); iter != t.end(); ++iter) {
-			std::cout << iter.key.operator std::string() << " = " << (int)iter.value << std::endl;
+			std::cout << (std::string)iter.key << " = " << (int)iter.value << std::endl;
 		}
 	}
 

@@ -119,8 +119,15 @@ struct Ref {
 
 	//right now I only test for nil
 	//I should test for valid conversion of types as well
+	//same as with cast, only overload for specific instances
 	template<typename T>
-	Ref& operator>>(T& result);
+	Ref& store(T& result);
+
+	Ref& operator>>(bool& result) { return store<bool>(result); }
+	Ref& operator>>(int& result) { return store<int>(result); }
+	Ref& operator>>(float& result) { return store<float>(result); }
+	Ref& operator>>(double& result) { return store<double>(result); }
+	Ref& operator>>(std::string& result) { return store<std::string>(result); }
 
 	bool operator==(const Ref& other) const;
 	bool operator!=(const Ref& other) const;
@@ -128,12 +135,22 @@ struct Ref {
 	//Cast operators, for the daring, who want to assign directly without testing .good()
 	//I don't want to return a default value on fail, so I'll just have it throw exceptions.
 	template<typename T>
-	operator T() {
+	T cast() {
 		T result;
-		(*this) >> result;
+		store<T>(result);
 		if (!good()) throw Common::Exception() << "failed to convert to int";
 		return result;
 	}
+
+	//don't template the cast operator
+	//instead only provide what specific cast instances are available
+	//these are 1-1 with the toC<T> specific instances
+	//why not?  because too many cast operator options confuse the compiler when casting to std::string
+	operator bool() { return cast<bool>(); }
+	operator int() { return cast<int>(); }
+	operator float() { return cast<float>(); }
+	operator double() { return cast<double>(); }
+	operator std::string() { return cast<std::string>(); }
 	
 	iterator begin();
 
@@ -159,7 +176,7 @@ struct Ref::iterator {
 };
 
 template<typename T>
-Ref& Ref::operator>>(T& result) {
+Ref& Ref::store(T& result) {
 	details->push();	//v
 	lua_State* L = details->state->getState();
 	int v = lua_gettop(L);
