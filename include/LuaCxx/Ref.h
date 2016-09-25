@@ -136,7 +136,7 @@ struct Ref {
 	//I don't want to return a default value on fail, so I'll just have it throw exceptions.
 	template<typename T>
 	T cast() {
-		T result;
+		T result = T();
 		store<T>(result);
 		if (!good()) throw Common::Exception() << "failed to convert to int";
 		return result;

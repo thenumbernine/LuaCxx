@@ -6,9 +6,9 @@
 #include <cassert>
 
 int main() {
-	//reference tests
+	std::cout << "reference tests" << std::endl;
 	
-	//test loading code and reading optionally-available values
+	std::cout << "test loading code and reading optionally-available values" << std::endl;
 	{
 		LuaCxx::State lua;
 		
@@ -28,7 +28,7 @@ int main() {
 	}
 
 
-	//testing functions
+	std::cout << "testing functions" << std::endl;
 	{
 		LuaCxx::State lua;
 		//I've only got callbacks working by direct call.
@@ -37,7 +37,7 @@ int main() {
 		TEST_EQ((int)lua["e"](1,2,4), 7);
 	}
 
-	//table lengths
+	std::cout << "table lengths" << std::endl;
 	{
 		LuaCxx::State lua;
 		
@@ -51,43 +51,44 @@ int main() {
 		TEST_EQ(lua["t"].len(), 2);
 	}
 
-	//ref eq/ne
+	std::cout << "ref eq/ne" << std::endl;
 	{
 		LuaCxx::State lua;
 		lua << "t = {}";
 		LuaCxx::Ref t1 = lua["t"];
 		LuaCxx::Ref t2 = lua["t"];
-		//verify equality from separate references works
+		std::cout << "verify equality from separate references works" << std::endl;
 		TEST_EQ(t1 == t2, true);
 		TEST_EQ(t1 != t2, false);
 
 		lua << "s = {}";
 		LuaCxx::Ref s = lua["s"];
-		//verify inequality works
+		std::cout << "verify inequality works" << std::endl;
 		TEST_EQ(t1 == s, false);
 		TEST_EQ(t1 != s, true);
 		TEST_EQ(t2 == s, false);
 		TEST_EQ(t2 != s, true);
 	}
 
-	//iterators
+	std::cout << "iterators" << std::endl;
 	{
 		LuaCxx::State lua;
 		lua << "t = {a=1, b=2, c=3}";
 		LuaCxx::Ref t = lua["t"];
+//somewhere in here is crashing ...
 		for (LuaCxx::Ref::iterator iter = t.begin(); iter != t.end(); ++iter) {
 			std::cout << (std::string)iter.key << " = " << (int)iter.value << std::endl;
 		}
 	}
 
-	//stack tests
+	std::cout << "stack tests" << std::endl;
 	{
 		LuaCxx::State lua;
 		LuaCxx::Stack stack = lua.stack();
 		
 		TEST_EQ(stack.top(), 0);
 	
-		//pushing and popping single values
+		std::cout << "pushing and popping single values" << std::endl;
 		{
 			int a = -1;
 			stack << 2;
@@ -97,15 +98,15 @@ int main() {
 			TEST_EQ(a, 2);
 		}
 
-		//pushing and popping single values
-		//order of operations
+		std::cout << "pushing and popping single values" << std::endl;
+		std::cout << "order of operations" << std::endl;
 		{
 			int a = -1;
 			stack << 2 >> a;
 			TEST_EQ(a, 2);
 		}
 
-		//pushing and popping multiple values
+		std::cout << "pushing and popping multiple values" << std::endl;
 		{
 			int a = -1;
 			int b = -1;
@@ -115,7 +116,7 @@ int main() {
 			TEST_EQ(stack.top(), 0);
 		}
 
-		//popping globals
+		std::cout << "popping globals" << std::endl;
 		{
 			int a = -1;
 			lua << "a = 3";
@@ -126,7 +127,7 @@ int main() {
 			TEST_EQ(a, 3);
 		}
 
-		//single return values
+		std::cout << "single return values" << std::endl;
 		{
 			int a = -1;
 			lua << "function c(a,b,c) return a+b+c end";
@@ -139,7 +140,7 @@ int main() {
 			TEST_EQ(stack.top(), 0);
 		}
 
-		//concise single return value 
+		std::cout << "concise single return value " << std::endl;
 		{
 			int a = -1;
 			stack
@@ -150,7 +151,7 @@ int main() {
 			TEST_EQ(a, 6);
 		}
 
-		//concise multiple return values
+		std::cout << "concise multiple return values" << std::endl;
 		{
 			lua << "function d(a,b,c) return b+c, c+a, a+b end";
 			int a = -1;
@@ -163,7 +164,7 @@ int main() {
 			.pop(a,b,c);
 		}
 
-		//return nested tables
+		std::cout << "return nested tables" << std::endl;
 		{
 			lua << "function e(a,b,c) return {a={a}, b={{b}}, c={{{c}}}} end";
 			int a = -1;
@@ -198,6 +199,9 @@ int main() {
 			TEST_EQ(c, 3);
 		}
 	}
+	
+	std::cout << "done!" << std::endl;
+
 	return 0;
 }
 
