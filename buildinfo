@@ -1,26 +1,40 @@
 distName='LuaCxx'
 distType='lib'
 depends:append{'../Common', '../Tensor'}
+
 --LuaCxx_luaVer = '5.1'
 LuaCxx_luaVer = '5.3'
 --LuaCxx_luaVer = 'JIT 2.0.4'
-depend = function(cwd)
+
+if LuaCxx_luaVer == '5.1' then
+	macros:insert'LUACXX_USE_LUA_5'
+	macros:insert'LUACXX_USE_LUA_5_1'
+elseif LuaCxx_luaVer == '5.3' then
+	macros:insert'LUACXX_USE_LUA_5'
+	macros:insert'LUACXX_USE_LUA_5_3'
+	if platform == 'linux' then
+		include:insert'/usr/include/lua5.3'
+	elseif platform == 'msvc' then
+		include:insert(cwd..'/../lua-5.3.3/src')
+	end
+elseif LuaCxx_luaVer == 'LuaJIT 2.0.4' then
+	macros:insert'LUACXX_USE_LUAJIT_2'
+	macros:insert'LUACXX_USE_LUAJIT_2_0'
+	macros:insert'LUACXX_USE_LUAJIT_2_0_4'
+end
+
+if including then
 	if platform == 'linux' then
 		if LuaCxx_luaVer == '5.1' then
-			macros:insert'LUACXX_USE_LUA_5'
-			macros:insert'LUACXX_USE_LUA_5_1'
 			dynamicLibs:insert'/usr/lib/x86_64-linux-gnu/liblua5.1.so'
 		elseif LuaCxx_luaVer == '5.3' then
-			macros:insert'LUACXX_USE_LUA_5'
-			macros:insert'LUACXX_USE_LUA_5_3'
 			dynamicLibs:insert'/usr/lib/x86_64-linux-gnu/liblua5.3.so'
 		elseif LuaCxx_luaVer == 'LuaJIT 2.0.4' then
-			macros:insert'LUACXX_USE_LUAJIT_2'
-			macros:insert'LUACXX_USE_LUAJIT_2_0'
-			macros:insert'LUACXX_USE_LUAJIT_2_0_4'
 			dynamicLibs:insert'/usr/lib/x86_64-linux-gnu/libluajit-5.1.so.2.0.4'
 			include:insert'/usr/local/include/luajit-2.0'
 			linkFlags = linkFlags .. ' -pagezero_size 10000 -image_base 100000000'
 		end
+	elseif platform == 'msvc' then
+		dynamicLibs:insert(cwd..'/../lua-5.3.3/src/lua53.lib')
 	end
 end
