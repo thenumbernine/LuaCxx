@@ -44,4 +44,3 @@ inline std::string toC<std::string>(lua_State* L, int loc) {
 // and not support toC<std::function<()>>.
 
 };
-

@@ -28,7 +28,8 @@ if including then
 		if LuaCxx_luaVer == '5.1' then
 			dynamicLibs:insert'/usr/lib/x86_64-linux-gnu/liblua5.1.so'
 		elseif LuaCxx_luaVer == '5.3' then
-			dynamicLibs:insert'/usr/lib/x86_64-linux-gnu/liblua5.3.so'
+			libs:insert'lua5.3-c++'
+			--dynamicLibs:insert'/usr/lib/x86_64-linux-gnu/liblua5.3.so'
 		elseif LuaCxx_luaVer == 'LuaJIT 2.0.4' then
 			dynamicLibs:insert'/usr/lib/x86_64-linux-gnu/libluajit-5.1.so.2.0.4'
 			include:insert'/usr/local/include/luajit-2.0'
