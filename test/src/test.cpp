@@ -75,7 +75,6 @@ int main() {
 		LuaCxx::State lua;
 		lua << "t = {a=1, b=2, c=3}";
 		LuaCxx::Ref t = lua["t"];
-//somewhere in here is crashing ...
 		for (LuaCxx::Ref::iterator iter = t.begin(); iter != t.end(); ++iter) {
 			std::cout << (std::string)iter.key << " = " << (int)iter.value << std::endl;
 		}
