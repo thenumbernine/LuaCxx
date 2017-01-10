@@ -106,61 +106,40 @@ bool Ref::iterator::operator!=(const iterator& other) {
 
 Ref::iterator& Ref::iterator::operator++() {
 	lua_State* L = state->getState();
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	table.details->push();	//t
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	int t = lua_gettop(L);
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	key.details->push();	//t key
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	done = !lua_next(L, t);	//t key value
 	if (done) {
 		lua_pushnil(L);		//t nil
 		lua_pushnil(L);		//t nil nil
 	}
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	value = Ref(state);		//t key
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	key = Ref(state);		//t
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	lua_pop(L,1);
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	return *this;
 }
 
 Ref::iterator Ref::begin() {
 	lua_State* L = details->state->getState();
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	details->push();
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	int t = lua_gettop(L);
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	lua_pushnil(L);				//t nil
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	bool done = !lua_next(L, t);//t key value
 	if (done) {
 		lua_pushnil(L);			//t nil
 		lua_pushnil(L);			//t nil nil
 	}
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
-	iterator i(details->state, done);	//
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
-	return i;
+	return iterator(details->state, done);	//
 }
 
 Ref::iterator Ref::end()  {
 	lua_State* L = details->state->getState(); 
 	assert(lua_gettop(L) >= 0);
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	lua_pushnil(L);
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	lua_pushnil(L);
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
 	lua_pushnil(L);
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
-	iterator i(details->state, true);
-//std::cout << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": top " << lua_gettop(L) << std::endl;
-	return i;
+	return iterator(details->state, true);
 }
 
 };
