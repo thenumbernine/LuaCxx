@@ -37,5 +37,7 @@ if including then
 		end
 	elseif platform == 'msvc' then
 		dynamicLibs:insert(cwd..'/../lua-5.3.3/src/lua53.lib')
+	elseif platform == 'osx' then
+		dynamicLibs:insert(os.getenv'HOME'..'/lib/liblua.dylib')
 	end
 end
