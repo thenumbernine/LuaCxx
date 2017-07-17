@@ -8,6 +8,7 @@ include Config.mk
 # Lua 5.3
 ifdef LUACXX_USE_LUA_5_3
 INCLUDE+=$(HOME)/include
+DYNAMIC_LIBS+=$(HOME)/lib/liblua$(LIB_SUFFIX)
 endif
 
 # LuaJIT 2.0.3
