@@ -7,8 +7,10 @@ DYNAMIC_LIBS+=$(LUACXX_PATH)dist/$(PLATFORM)/$(BUILD)/libLuaCxx$(LIB_SUFFIX)
 
 # Lua 5.3
 ifdef LUACXX_USE_LUA_5_3
-DYNAMIC_LIBS+=$(HOME)/lib/liblua$(LIB_SUFFIX)
-INCLUDE+=$(HOME)/include
+LIBS_linux+=lua5.3-c++
+INCLUDE_linux+=/usr/include/lua5.3
+DYNAMIC_LIBS_osx+=$(HOME)/lib/liblua$(LIB_SUFFIX)
+INCLUDE_osx+=$(HOME)/include
 #DYNAMIC_LIBS+=/usr/lib/x86_64-linux-gnu/liblua5.3$(LIB_SUFFIX)
 endif
 
