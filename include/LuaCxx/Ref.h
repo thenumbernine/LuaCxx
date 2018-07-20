@@ -10,6 +10,7 @@
 #include <string>
 #include <tuple>
 #include <type_traits>
+#include <typeinfo>
 
 namespace LuaCxx {
 
@@ -138,7 +139,7 @@ struct Ref {
 	T cast() {
 		T result = T();
 		store<T>(result);
-		if (!good()) throw Common::Exception() << "failed to convert to int";
+		if (!good()) throw Common::Exception() << "failed to convert to " << typeid(T).name();
 		return result;
 	}
 
