@@ -40,7 +40,6 @@ Stack& Stack::setGlobal(std::string name) {
 }
 
 Stack& Stack::seti(lua_Integer key, int tableLoc) {
-std::cout << "_G["<<tableLoc<<"]["<<key<<"] = top of stack;"<< std::endl;
 	lua_seti(state->getState(), tableLoc, key);
 	return *this;
 }

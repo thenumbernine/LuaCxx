@@ -212,7 +212,8 @@ int main() {
 			stack
 			.push(2)			//t 2
 			.seti(10, t);		//t		; t[10] = 2
-			TEST_EQ(lua["t"][10], 2);
+			double v = lua["t"][10];
+			TEST_EQ(v, 2);
 		}
 	}
 	
