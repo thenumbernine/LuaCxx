@@ -6,8 +6,20 @@
 #include <cassert>
 
 int main() {
-	std::cout << "reference tests" << std::endl;
 	
+	std::cout << "negative tests" << std::endl;
+	{
+		LuaCxx::State lua;
+		try {
+			lua << " this; is; bad; code";
+			throw Common::Exception() << "should have failed!";
+		} catch (std::exception& e) {
+			std::cout << "got expected exception: " << e.what() << std::endl;
+		}
+	}
+	
+	std::cout << "reference tests" << std::endl;
+
 	std::cout << "test loading code and reading optionally-available values" << std::endl;
 	{
 		LuaCxx::State lua;
