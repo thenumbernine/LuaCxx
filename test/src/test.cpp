@@ -10,11 +10,29 @@ int main() {
 	std::cout << "negative tests" << std::endl;
 	{
 		LuaCxx::State lua;
-		try {
-			lua << " this; is; bad; code";
-			throw Common::Exception() << "should have failed!";
-		} catch (std::exception& e) {
-			std::cout << "got expected exception: " << e.what() << std::endl;
+		
+		//test parser errors
+		{
+			bool failed = false;
+			try {
+				lua << " this; is; bad; code";
+				failed = true;
+			} catch (std::exception& e) {
+				std::cout << "got expected exception: " << e.what() << std::endl;
+			}
+			if (failed) throw Common::Exception() << "should have failed!";
+		}
+
+		//test runtime errors
+		{
+			bool failed = false;
+			try {
+				lua << "error 'here'";
+				failed = true;
+			} catch (std::exception& e) {
+				std::cout << "got expected exception: " << e.what() << std::endl;
+			}
+			if (failed) throw Common::Exception() << "should have failed!";
 		}
 	}
 	
