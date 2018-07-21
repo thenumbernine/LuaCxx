@@ -142,4 +142,17 @@ Ref::iterator Ref::end()  {
 	return iterator(details->state, true);
 }
 
+int Ref::typevalue() const {
+	details->push();
+	lua_State* L = details->state->getState();
+	int type_ = lua_type(L, -1);
+	lua_pop(L, 1);
+	return type_;
+}
+
+std::string Ref::type() const {
+	lua_State* L = details->state->getState();
+	return lua_typename(L, (int)typevalue());
+}
+
 };

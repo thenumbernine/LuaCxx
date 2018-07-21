@@ -197,6 +197,23 @@ int main() {
 			.pop();
 			TEST_EQ(c, 3);
 		}
+	
+		//stack setting to integer keys
+		{
+			stack
+			.newtable();		//t
+			
+			stack
+			.pushvalue()		//t t
+			.setGlobal("t");	//t		; _G.t = t
+
+			int t = stack.top();
+			
+			stack
+			.push(2)			//t 2
+			.seti(10, t);		//t		; t[10] = 2
+			TEST_EQ(lua["t"][10], 2);
+		}
 	}
 	
 	std::cout << "done!" << std::endl;

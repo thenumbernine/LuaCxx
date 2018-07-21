@@ -69,7 +69,7 @@ struct Ref {
 	virtual bool isThread();
 	virtual bool isUserData();
 
-	//When using the templaed method the compiler gets confused with const char's
+	//When using the templated method the compiler gets confused with const char's
 	//so hide it behind explicitly prototyped operator[]'s -- to allow the compiler to coerce types correctly
 	//This also serves for explicit getting of a particular type.  Useful for bool, which the compiler doesn't like to deduce correctly.
 	template<typename T>
@@ -162,6 +162,10 @@ struct Ref {
 	TODO get Ref::operator== working, then at least have the table match up, so for a!=b, a.end()!=b.end()
 	*/
 	iterator end();
+
+	//returns the lua type integer LUA_T*
+	int typevalue() const;
+	std::string type() const;
 };
 
 struct Ref::iterator {

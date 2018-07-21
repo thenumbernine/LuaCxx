@@ -24,6 +24,27 @@ Stack::~Stack() {
 	if (state) lua_settop(state->getState(), topIndex);
 }
 	
+Stack& Stack::pushvalue(int index) {
+	lua_pushvalue(state->getState(), index);
+	return *this;
+}
+
+Stack& Stack::newtable() {
+	lua_newtable(state->getState());
+	return *this;
+}
+	
+Stack& Stack::setGlobal(std::string name) {
+	lua_setglobal(state->getState(), name.c_str());
+	return *this;
+}
+
+Stack& Stack::seti(lua_Integer key, int tableLoc) {
+std::cout << "_G["<<tableLoc<<"]["<<key<<"] = top of stack;"<< std::endl;
+	lua_seti(state->getState(), tableLoc, key);
+	return *this;
+}
+
 Stack& Stack::call(int nargs, int nret) {
 	state->call(nargs, nret);
 	return *this;

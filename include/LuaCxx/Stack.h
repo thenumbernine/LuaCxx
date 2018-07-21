@@ -82,6 +82,7 @@ public:
 	}
 
 	//push multiple
+	//TODO rename to pushconst, not to confuse with 'lua_pushvalue'
 	template<typename... Args>
 	Stack& push(Args... args) {
 		typedef TypeVector<Args...> ArgVec;
@@ -102,6 +103,8 @@ public:
 	template<typename T>
 	Stack& getType(const T& key, int tableLoc = -1) {
 		lua_State* L = state->getState();
+		//why jump through hoops with copying the table? 
+		// in case tableLoc is a special/negative number.
 		lua_pushvalue(L, tableLoc);	//t
 		fromC<T>(L, key);	//t k
 		lua_gettable(L, -2);	//t v
@@ -111,10 +114,24 @@ public:
 
 	//get a key from the table location (default at the top of the stack)
 	// and push it onto the stack
+	//notice, lua format is lua_get**(tableLoc, key) ... but this doesn't let me default tableLoc to -1 
 	Stack& get(int key, int tableLoc = -1) { return getType<int>(key, tableLoc); }
 	Stack& get(float key, int tableLoc = -1) { return getType<float>(key, tableLoc); }
 	Stack& get(double key, int tableLoc = -1) { return getType<double>(key, tableLoc); }
 	Stack& get(const std::string& key, int tableLoc = -1) { return getType<std::string>(key, tableLoc); }
+
+	//lua_pushvalue
+	Stack& pushvalue(int index = -1);
+
+	//pushes a new table onto the stack
+	Stack& newtable();
+
+	//pops top of stack, sets it as a global
+	Stack& setGlobal(std::string name);
+
+	//sets the value on the stack to the table's index
+	//default the table index to -2, since the value must be at -1
+	Stack& seti(lua_Integer key, int tableLoc = -2);
 
 	//get a key from the global table and push it into the stack
 	template<typename T>
