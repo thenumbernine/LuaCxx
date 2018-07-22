@@ -51,15 +51,15 @@ protected:
 	State* state;
 	int topIndex;
 
-	//factory constructor 
+	//factory constructor
 	Stack(State* state);
-	
+
 	//copy constructor
 	Stack(const Stack& other);
-	
+
 	friend struct State;
 public:
-	
+
 	//move constructor
 	Stack(Stack&& other);
 
@@ -72,7 +72,7 @@ public:
 		return *this;
 	}
 
-	//pop primitive 
+	//pop primitive
 	template<typename T>
 	Stack& operator>>(T& value) {
 		lua_State* L = state->getState();
@@ -103,7 +103,7 @@ public:
 	template<typename T>
 	Stack& getType(const T& key, int tableLoc = -1) {
 		lua_State* L = state->getState();
-		//why jump through hoops with copying the table? 
+		//why jump through hoops with copying the table?
 		// in case tableLoc is a special/negative number.
 		lua_pushvalue(L, tableLoc);	//t
 		fromC<T>(L, key);	//t k
@@ -114,7 +114,7 @@ public:
 
 	//get a key from the table location (default at the top of the stack)
 	// and push it onto the stack
-	//notice, lua format is lua_get**(tableLoc, key) ... but this doesn't let me default tableLoc to -1 
+	//notice, lua format is lua_get**(tableLoc, key) ... but this doesn't let me default tableLoc to -1
 	Stack& get(int key, int tableLoc = -1) { return getType<int>(key, tableLoc); }
 	Stack& get(float key, int tableLoc = -1) { return getType<float>(key, tableLoc); }
 	Stack& get(double key, int tableLoc = -1) { return getType<double>(key, tableLoc); }

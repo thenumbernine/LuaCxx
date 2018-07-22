@@ -16,17 +16,21 @@ State::State()
 State::~State() {
 	if (L) lua_close(L);
 }
-	
+
+//this isn't getting called on exception ...
 int State::errorHandler(lua_State *L) {
 	std::ostringstream ss;
 	ss << "lua error\n" << lua_tostring(L, -1) << "\n";
-	lua_getglobal(L, "debug");	//debug
+	lua_pop(L,1);
+	lua_getglobal(L, "debug");						//debug
 	lua_getfield(L, lua_gettop(L), "traceback");	//debug, debug.traceback
-	lua_remove(L, lua_gettop(L)-1);	//debug.traceback
-	lua_call(L, 0, 1);	//traceback-results
+	lua_remove(L, lua_gettop(L)-1);					//debug.traceback
+	lua_call(L, 0, 1);								//traceback_results
 	ss << lua_tostring(L, -1);
 	lua_pop(L,1);
-	throw Common::Exception() << ss.str();
+	std::string s = ss.str();
+	lua_pushstring(L, s.c_str());
+	return 1;
 }
 
 State& State::loadFile(const std::string& filename) {
@@ -48,14 +52,17 @@ State& State::runString(const std::string& str, int narg, int nret) {
 }
 
 //expects function and args on the stack 
-int State::call(int nargs, int nresults) {
+void State::call(int nargs, int nresults) {
 	lua_pushcfunction(L, errorHandler);	//add error handler
 	int errHandlerLoc = lua_gettop(L) - nargs - 1;
 	lua_insert(L, errHandlerLoc);	//move it beneath the function and its args
 	if (!lua_isfunction(L, errHandlerLoc)) throw Common::Exception() << "expected function!";
 	int result = lua_pcall(L, nargs, nresults, errHandlerLoc);
 	lua_remove(L, errHandlerLoc);	//remove error handler
-	return result; //return with results on the stack
+	if (result != LUA_OK) {
+		throw Common::Exception() << lua_tostring(L, -1);
+	}
+	//return with results on the stack
 }
 	
 GlobalTable State::ref() { 

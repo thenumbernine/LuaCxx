@@ -32,7 +32,7 @@ public:
 
 	//expects function and args on the stack 
 	//returns with results on the stack
-	int call(int nargs, int nresults);
+	void call(int nargs, int nresults);
 
 	lua_State *getState() { return L; }
 
