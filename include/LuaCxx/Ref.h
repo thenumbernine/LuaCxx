@@ -1,7 +1,7 @@
 #pragma once
 
-#include "LuaCxx/toC.h"
-#include "LuaCxx/fromC.h"
+#include "LuaCxx/readFromLuaState.h"
+#include "LuaCxx/pushToLuaState.h"
 #include "LuaCxx/State.h"
 #include "LuaCxx/Stack.h"
 #include "Common/Meta.h"
@@ -77,7 +77,7 @@ struct Ref {
 		details->push();
 		lua_State* L = details->state->getState();
 		int t = lua_gettop(L);
-		fromC<T>(L, key);	//t k
+		pushToLuaState<T>(L, key);	//t k
 		lua_gettable(L, t);	//t v
 		lua_remove(L, t);	//v
 		return Ref(details->state);
@@ -145,7 +145,7 @@ struct Ref {
 
 	//don't template the cast operator
 	//instead only provide what specific cast instances are available
-	//these are 1-1 with the toC<T> specific instances
+	//these are 1-1 with the readFromLuaState<T> specific instances
 	//why not?  because too many cast operator options confuse the compiler when casting to std::string
 	operator bool() { return cast<bool>(); }
 	operator int() { return cast<int>(); }
@@ -188,7 +188,7 @@ Ref& Ref::store(T& result) {
 	if (lua_isnil(L, v)) {
 		details->good = false;
 	} else {
-		result = toC<T>(L, v);
+		result = readFromLuaState<T>(L, v);
 		details->good = true;
 	}
 	lua_pop(L, 1);

@@ -62,7 +62,7 @@ int Ref::len() {
 	details->push();
 	lua_State* L = details->state->getState();
 	lua_len(L, -1);
-	int len = toC<int>(L, -1);
+	int len = readFromLuaState<int>(L, -1);
 	lua_pop(L, 2);
 	return len;
 }

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "LuaCxx/State.h"
-#include "LuaCxx/fromC.h"
-#include "LuaCxx/toC.h"
+#include "LuaCxx/pushToLuaState.h"
+#include "LuaCxx/readFromLuaState.h"
 #include <tuple>
 
 namespace LuaCxx {
@@ -17,7 +17,7 @@ struct PushArgs {
 			typedef typename ArgVec::template Get<index> ArgI;
 			std::tuple<Args...> t = std::make_tuple(args...);
 			ArgI arg = std::get<index>(t);
-			fromC<ArgI>(L, arg);
+			pushToLuaState<ArgI>(L, arg);
 			return false;
 		}
 	};
@@ -32,7 +32,7 @@ struct PopArgs {
 		static bool exec(lua_State *L, Args&... args) {
 			typedef typename ArgVec::template Get<index> ArgI;
 			std::tuple<Args&...> t = std::forward_as_tuple(args...);
-			std::get<ArgVec::size - index - 1>(t) = toC<typename std::remove_reference<ArgI>::type>(L, -1);
+			std::get<ArgVec::size - index - 1>(t) = readFromLuaState<typename std::remove_reference<ArgI>::type>(L, -1);
 			lua_pop(L, 1);
 			return false;
 		}
@@ -68,7 +68,7 @@ public:
 	//push primitive
 	template<typename T>
 	Stack& operator<<(const T& value) {
-		fromC<T>(state->getState(), value);
+		pushToLuaState<T>(state->getState(), value);
 		return *this;
 	}
 
@@ -76,7 +76,7 @@ public:
 	template<typename T>
 	Stack& operator>>(T& value) {
 		lua_State* L = state->getState();
-		value = toC<T>(L, -1);
+		value = readFromLuaState<T>(L, -1);
 		lua_pop(L, 1);
 		return *this;
 	}
@@ -106,7 +106,7 @@ public:
 		//why jump through hoops with copying the table?
 		// in case tableLoc is a special/negative number.
 		lua_pushvalue(L, tableLoc);	//t
-		fromC<T>(L, key);	//t k
+		pushToLuaState<T>(L, key);	//t k
 		lua_gettable(L, -2);	//t v
 		lua_remove(L, -2);	//v
 		return *this;
@@ -169,4 +169,3 @@ inline Stack& Stack::pop() {
 }
 
 }
-
