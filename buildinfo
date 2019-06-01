@@ -15,7 +15,7 @@ elseif LuaCxx_luaVer == '5.3' then
 	if platform == 'linux' then
 		include:insert'/usr/include/lua5.3'
 	elseif platform == 'msvc' then
-		include:insert(cwd..'/../lua-5.3.3/src')
+		include:insert(cwd..[[\..\..\other\lua-5.3.5\src]])
 	end
 elseif LuaCxx_luaVer == 'LuaJIT 2.0.4' then
 	macros:insert'LUACXX_USE_LUAJIT_2'
@@ -36,8 +36,8 @@ if including then
 			linkFlags = linkFlags .. ' -pagezero_size 10000 -image_base 100000000'
 		end
 	elseif platform == 'msvc' then
-		dynamicLibs:insert(cwd..'/../lua-5.3.3/src/lua53.lib')
+		dynamicLibs:insert(home..[[\Projects\other\lua-5.3.5\vs\lua-5.3.5\x64\Release\lua53.lib]])
 	elseif platform == 'osx' then
-		dynamicLibs:insert(os.getenv'HOME'..'/lib/liblua.dylib')
+		dynamicLibs:insert(home..'/lib/liblua.dylib')
 	end
 end
