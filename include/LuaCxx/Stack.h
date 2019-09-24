@@ -3,6 +3,7 @@
 #include "LuaCxx/State.h"
 #include "LuaCxx/pushToLuaState.h"
 #include "LuaCxx/readFromLuaState.h"
+#include "Common/Meta.h"
 #include <tuple>
 
 namespace LuaCxx {
@@ -10,11 +11,11 @@ namespace LuaCxx {
 //used for pushing args on stack
 template<typename... Args>
 struct PushArgs {
-	typedef TypeVector<Args...> ArgVec;
+	using ArgVec = std::tuple<Args...>;
 	template<int index>
 	struct go {
 		static bool exec(lua_State *L, Args... args) {
-			typedef typename ArgVec::template Get<index> ArgI;
+			using ArgI = std::tuple_element_t<index, ArgVec>;
 			std::tuple<Args...> t = std::make_tuple(args...);
 			ArgI arg = std::get<index>(t);
 			pushToLuaState<ArgI>(L, arg);
@@ -26,13 +27,13 @@ struct PushArgs {
 //used for popping args on stack
 template<typename... Args>
 struct PopArgs {
-	typedef TypeVector<Args...> ArgVec;
+	using ArgVec = std::tuple<Args...>;
 	template<int index>
 	struct go {
 		static bool exec(lua_State *L, Args&... args) {
-			typedef typename ArgVec::template Get<index> ArgI;
+			using ArgI = std::tuple_element_t<index, ArgVec>;
 			std::tuple<Args&...> t = std::forward_as_tuple(args...);
-			std::get<ArgVec::size - index - 1>(t) = readFromLuaState<typename std::remove_reference<ArgI>::type>(L, -1);
+			std::get<std::tuple_size_v<ArgVec> - index - 1>(t) = readFromLuaState<typename std::remove_reference<ArgI>::type>(L, -1);
 			lua_pop(L, 1);
 			return false;
 		}
@@ -85,8 +86,8 @@ public:
 	//TODO rename to pushconst, not to confuse with 'lua_pushvalue'
 	template<typename... Args>
 	Stack& push(Args... args) {
-		typedef TypeVector<Args...> ArgVec;
-		ForLoop<0, ArgVec::size, PushArgs<Args...>::template go>::exec(state->getState(), args...);
+		using ArgVec = std::tuple<Args...>;
+		Common::ForLoop<0, std::tuple_size_v<ArgVec>, PushArgs<Args...>::template go>::exec(state->getState(), args...);
 		return *this;
 	}
 
@@ -95,7 +96,7 @@ public:
 	// this does not line up with operator>>, so stack.pop(a,b,c) is equivalent to stack >> c >> b >> a
 	template<typename... Args>
 	Stack& pop(Args&&... args) {
-		ForLoop<0, TypeVector<Args...>::size, PopArgs<Args&&...>::template go>::exec(state->getState(), args...);
+		Common::ForLoop<0, std::tuple_size_v<std::tuple<Args...>>, PopArgs<Args&&...>::template go>::exec(state->getState(), args...);
 		return *this;
 	}
 

@@ -96,8 +96,8 @@ struct Ref {
 	//call
 	template<typename... Args>
 	Ref operator()(Args... args) {
-		typedef TypeVector<Args...> ArgVec;
-		enum { numArgs = ArgVec::size };
+		using ArgVec = std::tuple<Args...>;
+		static constexpr auto numArgs = std::tuple_size_v<ArgVec>;
 		
 		details->push();
 		
@@ -105,7 +105,7 @@ struct Ref {
 		if (!lua_isfunction(L,-1)) throw Common::Exception() << "tried to call a non-function";
 
 		//push args on stack
-		ForLoop<0, ArgVec::size, PushArgs<Args...>::template go>::exec(L, args...);
+		Common::ForLoop<0, numArgs, PushArgs<Args...>::template go>::exec(L, args...);
 
 		//do the call
 		//only capture 1 argument off the stack 
