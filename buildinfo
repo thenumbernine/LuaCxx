@@ -2,9 +2,10 @@ distName='LuaCxx'
 distType='lib'
 depends:append{'../Common', '../Tensor'}
 
---LuaCxx_luaVer = '5.1'
-LuaCxx_luaVer = '5.3'
---LuaCxx_luaVer = 'JIT 2.0.4'
+-- Lua version.  uncomment for a default.  Can override in dependant project.
+--LuaCxx_luaVer = LuaCxx_luaVer or '5.1'
+LuaCxx_luaVer = LuaCxx_luaVer or '5.3'
+--LuaCxx_luaVer = LuaCxx_luaVer or 'JIT 2.0.4'
 
 if LuaCxx_luaVer == '5.1' then
 	macros:insert'LUACXX_USE_LUA_5'
