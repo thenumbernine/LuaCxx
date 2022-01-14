@@ -8,7 +8,7 @@ LuaCxx_luaVer = LuaCxx_luaVer or 'Vanilla'
 
 if platform == 'linux' then
 	if LuaCxx_luaVer == 'Vanilla' then
-		env:addPackages'lua'
+		env:addPackages'lua-c++'
 	elseif LuaCxx_luaVer == 'JIT' then
 		env:addPackages'luajit'
 		--linkFlags = linkFlags .. ' -pagezero_size 10000 -image_base 100000000'
