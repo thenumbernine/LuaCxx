@@ -51,6 +51,8 @@ struct Ref {
 	
 	Ref(State* state);
 	Ref(const Ref& value);
+	
+	virtual ~Ref() {}
 
 	//whether the last IO routine was a success
 	bool good() const;
