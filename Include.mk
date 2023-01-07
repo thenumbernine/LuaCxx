@@ -1,9 +1,7 @@
 LUACXX_PATH:=$(dir $(lastword $(MAKEFILE_LIST)))
-
 include $(LUACXX_PATH)Config.mk
-
 INCLUDE+=$(LUACXX_PATH)include
-DYNAMIC_LIBS+=$(LUACXX_PATH)dist/$(PLATFORM)/$(BUILD)/libLuaCxx$(LIB_SUFFIX)
+DEPEND_LIBS+=$(LUACXX_PATH)dist/$(PLATFORM)/$(BUILD)/$(LIB_PREFIX)LuaCxx$(LIB_SUFFIX)
 
 # Lua 5.3
 ifdef LUACXX_USE_LUA_5_3

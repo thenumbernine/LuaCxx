@@ -4,6 +4,7 @@
 #include "LuaCxx/pushToLuaState.h"
 #include "LuaCxx/readFromLuaState.h"
 #include "Common/Meta.h"
+#include "Common/ForLoop.h"
 #include <tuple>
 
 namespace LuaCxx {
