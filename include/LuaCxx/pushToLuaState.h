@@ -91,8 +91,8 @@ struct pushToLuaState_impl<double> {
 };
 
 template<>
-struct pushToLuaState_impl<const char*> {
-	static void exec(lua_State* L, const char* value) {
+struct pushToLuaState_impl<char const *> {
+	static void exec(lua_State* L, char const * value) {
 		lua_pushstring(L, value);
 	}
 };

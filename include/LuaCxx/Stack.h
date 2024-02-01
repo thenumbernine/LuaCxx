@@ -120,7 +120,8 @@ public:
 	Stack& get(int key, int tableLoc = -1) { return getType<int>(key, tableLoc); }
 	Stack& get(float key, int tableLoc = -1) { return getType<float>(key, tableLoc); }
 	Stack& get(double key, int tableLoc = -1) { return getType<double>(key, tableLoc); }
-	Stack& get(const std::string& key, int tableLoc = -1) { return getType<std::string>(key, tableLoc); }
+	Stack& get(std::string const & key, int tableLoc = -1) { return getType<std::string>(key, tableLoc); }
+	Stack& get(char const * key, int tableLoc = -1) { return getType<char const *>(key, tableLoc); }
 
 	//lua_pushvalue
 	Stack& pushvalue(int index = -1);
@@ -130,6 +131,7 @@ public:
 
 	//pops top of stack, sets it as a global
 	Stack& setGlobal(std::string name);
+	Stack& setGlobal(char const * name);
 
 	//sets the value on the stack to the table's index
 	//default the table index to -2, since the value must be at -1
@@ -137,7 +139,7 @@ public:
 
 	//get a key from the global table and push it into the stack
 	template<typename T>
-	Stack& getGlobalType(const T& key) {
+	Stack& getGlobalType(T const & key) {
 #if LUA_VERSION_NUM == 501
 		get(key, LUA_GLOBALSINDEX);
 #elif LUA_VERSION_NUM >= 502
@@ -152,7 +154,8 @@ public:
 		return *this;
 	}
 
-	Stack& getGlobal(const std::string& key) { return getGlobalType<std::string>(key); }
+	Stack& getGlobal(std::string const & key) { return getGlobalType<std::string>(key); }
+	Stack& getGlobal(char const * key) { return getGlobalType<char const *>(key); }
 	Stack& getGlobal(int key) { return getGlobalType<int>(key); }
 	Stack& getGlobal(float key) { return getGlobalType<float>(key); }
 	Stack& getGlobal(double key) { return getGlobalType<double>(key); }

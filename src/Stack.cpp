@@ -39,6 +39,12 @@ Stack& Stack::setGlobal(std::string name) {
 	return *this;
 }
 
+Stack& Stack::setGlobal(char const * name) {
+	lua_setglobal(state->getState(), name);
+	return *this;
+}
+
+
 Stack& Stack::seti(lua_Integer key, int tableLoc) {
 	lua_seti(state->getState(), tableLoc, key);
 	return *this;
