@@ -3,8 +3,13 @@ distType='lib'
 depends:append{'../Common', '../Tensor'}
 
 -- Lua version.  uncomment for a default.  Can override in dependant project.
+--[[
 LuaCxx_luaVer = LuaCxx_luaVer or 'Vanilla'
---LuaCxx_luaVer = LuaCxx_luaVer or 'JIT'
+--]]
+-- [[
+LuaCxx_luaVer = LuaCxx_luaVer or 'JIT'
+distName = 'LuaCxx_LuaJIT'
+--]]
 
 if platform == 'linux' then
 	if LuaCxx_luaVer == 'Vanilla' then

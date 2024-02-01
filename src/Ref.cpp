@@ -25,7 +25,7 @@ Ref::Details::~Details() {
 
 Ref::Ref(State* state) : details(std::make_shared<Details>(state)) {}
 Ref::Ref(const Ref &value) : details(value.details) {}
-	
+
 bool Ref::good() const { return details->good; }
 
 #define FUNCTION_FOR_MACRO(name) static int _##name(lua_State* L, int n) { return name(L, n); }
@@ -61,7 +61,14 @@ bool Ref::isUserData() { details->push(); return testType<lua_isuserdata>(detail
 int Ref::len() {
 	details->push();
 	lua_State* L = details->state->getState();
+#if LUA_VERISON_NUM <= 501
+	// hmmmm metamethods ... lua 5.1 api only supports objlen, which is equiv to rawlen
+	//cheating until I think of a better way to do this ...
+	//NOTICE .len() for lua5.1 / luajit will only return rawlen ...
+	lua_objlen(L, -2);
+#else
 	lua_len(L, -1);
+#endif
 	int len = readFromLuaState<int>(L, -1);
 	lua_pop(L, 2);
 	return len;
@@ -134,7 +141,7 @@ Ref::iterator Ref::begin() {
 }
 
 Ref::iterator Ref::end()  {
-	lua_State* L = details->state->getState(); 
+	lua_State* L = details->state->getState();
 	assert(lua_gettop(L) >= 0);
 	lua_pushnil(L);
 	lua_pushnil(L);

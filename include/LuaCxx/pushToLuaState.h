@@ -8,7 +8,35 @@
 #include <map>
 
 namespace LuaCxx {
-	
+
+// lua<=5.2 and luajit don't have lua_seti so ...
+#if LUA_VERSION_NUM <= 501
+
+// from lua 5.3.6 lapi.c
+// adopted to luajit api
+inline bool lua_ispseudo(int const i) {
+	return ((i) <= LUA_REGISTRYINDEX);
+}
+
+// from lua 5.3.6 lapi.c
+// adopted to luajit api
+inline int lua_absindex(lua_State * const L, int const index) {
+	return (index > 0 || lua_ispseudo(index))
+	   ? index
+	   : lua_gettop(L) + index + 1;
+}
+
+#endif
+#if LUA_VERSION_NUM <= 502
+inline void lua_seti(lua_State * const L, int index, lua_Integer const key) {
+	index = lua_absindex(L, index);
+								// ..., value
+	lua_pushinteger(L, key);	// ..., value, key
+	lua_insert(L, -2);			// ..., key, value
+	lua_settable(L, index);		// ...;   table[key] = value
+}
+#endif
+
 
 //here's the default implementation:
 //by default we'll execute the member's pushToLuaState() function ... if it has one
