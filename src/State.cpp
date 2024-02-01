@@ -60,7 +60,12 @@ void State::call(int nargs, int nresults) {
 	int result = lua_pcall(L, nargs, nresults, errHandlerLoc);
 	lua_remove(L, errHandlerLoc);	//remove error handler
 	if (result != LUA_OK) {
-		throw Common::Exception() << lua_tostring(L, -1);
+		auto t = lua_type(L, -1);
+		if (t != LUA_TSTRING) {
+			throw Common::Exception() << "failed with error obj of type " << t;
+		} else {
+			throw Common::Exception() << lua_tostring(L, -1);
+		}
 	}
 	//return with results on the stack
 }
