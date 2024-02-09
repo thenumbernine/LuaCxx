@@ -1,7 +1,14 @@
 LUACXX_PATH:=$(dir $(lastword $(MAKEFILE_LIST)))
 include $(LUACXX_PATH)Config.mk
 INCLUDE+=$(LUACXX_PATH)include
-DEPEND_LIBS+=$(LUACXX_PATH)dist/$(PLATFORM)/$(BUILD)/$(LIB_PREFIX)LuaCxx$(LIB_SUFFIX)
+
+# BEGIN IN COMMON WITH MAKEFILE:
+
+ifdef LUACXX_USE_LUAJIT_2_0_3
+LUA_NAME_SUFFIX=_LuaJIT
+else
+LUA_NAME_SUFFIX=
+endif
 
 # Lua 5.3
 ifdef LUACXX_USE_LUA_5_3
@@ -21,7 +28,13 @@ endif
 
 # LuaJIT 2.0.3
 ifdef LUACXX_USE_LUAJIT_2_0_3
-DYNAMIC_LIBS+=/usr/local/lib/libluajit-5.1.so.2.0.3
-INCLUDE+=/usr/local/include/luajit-2.0
+#DYNAMIC_LIBS+=/usr/local/lib/libluajit-5.1.so.2.0.3
+LDFLAGS+=`pkg-config -libs luajit`
+#INCLUDE+=/usr/local/include/luajit-2.0
+CXXFLAGS+=`pkg-config -cflags luajit`
 LDFLAGS_osx_app+=-pagezero_size 10000 -image_base 100000000
 endif
+
+# END IN COMMON WITH MAKEFILE:
+
+DEPEND_LIBS+=$(LUACXX_PATH)dist/$(PLATFORM)/$(BUILD)/$(LIB_PREFIX)LuaCxx$(LUA_NAME_SUFFIX)$(LIB_SUFFIX)
