@@ -1,3 +1,0 @@
-Lua wrapper for C++ access similar to the Lua langauge itself.
-
-Uses lua refs, detail classes, and smart pointers to let you create copy and destroy objects as you see fit without worrying about deallocation or order of lua stack operations or anything else. 
