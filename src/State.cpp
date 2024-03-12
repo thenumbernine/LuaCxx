@@ -7,14 +7,23 @@
 namespace LuaCxx {
 
 State::State() 
-: L(luaL_newstate())
+:	L(luaL_newstate())
+,	owns(true)
 {
 	if (!L) throw Common::Exception() << "failed to create lua state!";
 	luaL_openlibs(L);
 }
 
+State::State(lua_State * L_)
+:	L(L_)
+,	owns(false)
+{
+	if (!L) throw Common::Exception() << "expected a lua state!";
+}
+
+
 State::~State() {
-	if (L) lua_close(L);
+	if (L && owns) lua_close(L);
 }
 
 //this isn't getting called on exception ...

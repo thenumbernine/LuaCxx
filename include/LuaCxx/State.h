@@ -13,12 +13,19 @@ struct Ref;
 
 struct State {
 protected:
-	lua_State* L;
+	lua_State * L = {};
+	bool owns = {};
 
-	static int errorHandler(lua_State*);
+	static int errorHandler(lua_State *);
 	
 public:
+	// create a state, be responsible for cleaning it up
 	State();
+	
+	// create a wrapper for an existing state
+	State(lua_State * L_);
+
+	// cleanup
 	virtual ~State();
 	
 	//executes a string via a lua_call, with narg and nret on the stack
