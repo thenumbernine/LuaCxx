@@ -92,6 +92,12 @@ struct Bind<long double> {
 	static constexpr std::string_view mtname = "long double";
 };
 
+template<typename T>
+struct Bind<T*> {
+	static constexpr std::string_view suffix = "*";
+	static constexpr std::string_view mtname = Common::join_v<Bind<T>::mtname, suffix>;
+};
+
 // needs to be a macro and not a C++ typed expression for lua's pushliteral to work
 #define LUACXX_BIND_PTRFIELD "ptr"
 
@@ -407,6 +413,24 @@ T LuaRW<T>::read(lua_State * L, int index) {
 				// so it doesn't really need to exist ...
 }
 
+// same as general case impl
+template<typename T>
+requires (std::is_pointer_v<T>)
+struct LuaRW<T> {
+	static void push(lua_State * L, T v) {
+		lua_newtable(L);
+		luaL_setmetatable(L, Bind<T>::mtname.data());
+		lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
+		lua_pushlightuserdata(L, v);
+		lua_rawset(L, -3);
+	}
+	static T read(lua_State * L, int index) {
+		luaL_error(L, "this field cannot be overwritten");
+		throw std::runtime_error("this field cannot be overwritten");
+	}
+};
+
+
 
 template<typename Base>
 struct FieldBase {
@@ -511,34 +535,6 @@ struct Field
 		}
 	}
 };
-
-#if 0
-template<auto field>
-requires (std::is_member_function_pointer_v<decltype(field)>)
-struct Field : public FieldBase<
-	typename Common::MemberMethodPointer<decltype(field)>::Class
-> {
-	using MP = Common::MemberMethodPointer<decltype(field);
-	using Base = typename MP::Class;
-	using Return = typename MP::Return;
-
-	virtual void push(Base & obj, lua_State * L) const override {
-		//LuaRW<Return>::push(L, obj.*field);
-		lua_pushcfunction(L, field);
-	}
-
-	virtual void read(Base & obj, lua_State * L, int index) const override {
-		//obj.*field = LuaRW<Return>::read(L, index);
-		luaL_error(L, "field is read-only");
-	}
-
-	virtual void mtinit(lua_State * L) const override {
-		if constexpr (std::is_class_v<Return>) {
-			Bind<Return>::mtinit(L);
-		}
-	}
-};
-#endif
 
 // generalized __len, __index, __newindex, and __ipairs access
 
@@ -668,6 +664,7 @@ struct IndexAccess
 };
 
 // infos for stl
+// TODO put this in its own file?
 
 template<typename Elem>
 struct Bind<std::vector<Elem>>
@@ -705,7 +702,12 @@ struct Bind<std::vector<Elem>>
 	}
 
 	static auto & getFields() {
+		static auto field_data = Field<static_cast<Elem * (Type::*)()>(&Type::data)>();
+		static auto field_size = Field<&Type::size>();
+		// TODO iterator exposure?
 		static std::map<std::string, FieldBase<Type>*> fields = {
+			{"data", &field_data},
+			{"size", &field_size},
 		};
 		return fields;
 	}
