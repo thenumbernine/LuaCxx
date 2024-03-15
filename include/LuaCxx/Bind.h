@@ -565,7 +565,13 @@ struct IndexAccessReadWrite {
 
 	static int __newindex(lua_State * L, Type & o) {
 		if (lua_type(L, 2) != LUA_TNUMBER) {
+#if 0	// option 1: no new fields
 			luaL_error(L, "can only write to index elements");
+#endif
+#if 1	// option 2: write the Lua value into the Lua table
+			lua_rawset(L, 1);
+			return 0;
+#endif
 		}
 		// TODO technically tointeger will cast floats to ints
 		// whereas true Lua behavior would return nil for non-int floats ...
@@ -573,6 +579,7 @@ struct IndexAccessReadWrite {
 		--i;
 		// using 1-based indexing. sue me.
 		if (i < 0 || i >= CRTPChild::IndexLen(o)) {
+			// *technically* you could just write in the Lua index ... but ... ....... I don't want to deal with mixing those two up
 			luaL_error(L, "index %d is out of bounds", i+1);
 		}
 		CRTPChild::IndexAccessWrite(L, o, i);
