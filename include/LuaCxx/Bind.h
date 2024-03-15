@@ -190,25 +190,55 @@ static int default__newindex(lua_State * L) {
 	return 0;
 }
 
-template<typename T>
+template<typename T, auto NextPairs = nullptr>
 static int default_pairsNext(lua_State * L) {
 	auto & o = *lua_getptr<T>(L, 1);
 	auto const & fields = Bind<T>::getFields();
 	if (lua_isnil(L, 2)) {
-		if (fields.empty()) return 0;
+		if (fields.empty()) {
+			//we are empty ... TODO if next then process what's next ...
+			if constexpr(NextPairs != nullptr) {
+				return NextPairs(L);
+			} else {
+				return 0;
+			}
+		}
 		// first key
 		// TODO how about string_view map ?
 		auto iter = fields.begin();
 		LuaRW<std::string>::push(L, iter->first);
 		iter->second->push(o, L);
 		return 2;
-	} 
+	}
+	if (!lua_isstring(L, 2)) {
+		// key isn't ours ... TODO if next then process what's next ...
+		return 0;
+		if constexpr(NextPairs != nullptr) {
+			return NextPairs(L);
+		} else {
+			return 0;
+		}
+	}
 	// better be a string, cuz that's all I'm supporting atm
 	auto const k = LuaRW<std::string>::read(L, 2);
 	auto iter = fields.find(k);
-	if (iter == fields.end()) return 0;
+	if (iter == fields.end()) {
+		// key isn't ours ... TODO if next then process what's next ...
+		if constexpr(NextPairs != nullptr) {
+			return NextPairs(L);
+		} else {
+			return 0;
+		}
+	}
 	++iter;
-	if (iter == fields.end()) return 0;
+	if (iter == fields.end()) {
+		//prev key was last key ... TODO if next then process what's next ...
+		if constexpr(NextPairs != nullptr) {
+			return NextPairs(L);
+		} else {
+			return 0;
+		}
+	}
 	LuaRW<std::string>::push(L, iter->first);
 	iter->second->push(o, L);
 	return 2;
@@ -589,6 +619,15 @@ struct IndexAccessReadWrite {
 	// TODO pairs...
 	// ... but a pairs that overrides the base-class pairs ...
 	// ... because TODO pairs in the base class that iterates over the fields ...
+	static int __pairs(lua_State * L, Type & o) {
+		lua_pushcfunction(L, (default_pairsNext<
+			Type,
+			IndexAccessReadWrite::IpairsNext	// once default next is done, it hands off to our ipairs
+		>));
+		lua_pushvalue(L, 1);
+		lua_pushnil(L);
+		return 3;
+	}
 };
 
 // CRTPChild needs to provide IndexAt, IndexLen
