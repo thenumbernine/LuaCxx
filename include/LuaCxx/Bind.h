@@ -67,6 +67,11 @@ static T * lua_getptr(lua_State * L, int index) {
 // I could just use the Bind static methods themselves, but meh, I cast the object here
 
 template<typename T>
+static inline int __tostring(lua_State * L) {
+	return Bind<T>::__tostring(L, *lua_getptr<T>(L, 1));
+}
+
+template<typename T>
 static inline int __index(lua_State * L) {
 	return Bind<T>::__index(L, *lua_getptr<T>(L, 1));
 }
@@ -82,13 +87,13 @@ static inline int __len(lua_State * L) {
 }
 
 template<typename T>
-static inline int __call(lua_State * L) {
-	return Bind<T>::__call(L, *lua_getptr<T>(L, 1));
+static inline int __ipairs(lua_State * L) {
+	return Bind<T>::__ipairs(L, *lua_getptr<T>(L, 1));
 }
 
 template<typename T>
-static inline int __tostring(lua_State * L) {
-	return Bind<T>::__tostring(L, *lua_getptr<T>(L, 1));
+static inline int __call(lua_State * L) {
+	return Bind<T>::__call(L, *lua_getptr<T>(L, 1));
 }
 
 // default behavior.  child template-specializations can override this.
@@ -134,10 +139,12 @@ static int default__tostring(lua_State * L) {
 	return 1;
 }
 
-// base infos for all structs:
+// base infos for all structs...
+// TODO just template this? or can I?  cuz the template arg needs the member ptr, which then would guarantee it already exists ....
 template<typename T> constexpr bool has__index_v = requires(T const & t) { t.__index; };
 template<typename T> constexpr bool has__newindex_v = requires(T const & t) { t.__newindex; };
 template<typename T> constexpr bool has__len_v = requires(T const & t) { t.__len; };
+template<typename T> constexpr bool has__ipairs_v = requires(T const & t) { t.__ipairs; };
 template<typename T> constexpr bool has__call_v = requires(T const & t) { t.__call; };
 template<typename T> constexpr bool has__tostring_v = requires(T const & t) { t.__tostring; };
 template<typename T> constexpr bool has_mt_ctor_v = requires(T const & t) { t.mt_ctor; };
@@ -217,6 +224,12 @@ struct BindStructBase {
 //std::cout << "assigning __len" << std::endl;
 			}
 
+			if constexpr (has__ipairs_v<Bind<T>>) {
+				lua_pushcfunction(L, ::LuaCxx::__ipairs<T>);
+				lua_setfield(L, -2, "__ipairs");
+//std::cout << "assigning __ipairs" << std::endl;
+			}
+
 			if constexpr (has__call_v<Bind<T>>) {
 				lua_pushcfunction(L, ::LuaCxx::__call<T>);
 				lua_setfield(L, -2, "__call");
@@ -289,6 +302,8 @@ struct LuaRW<T> {
 	}
 
 	static T read(lua_State * L, int index) {
+		// TODO what to do if the type doesn't match? i.e. assigning a string to an int?
+		// right now it just assigns 0 ...
 		return lua_tointeger(L, index);
 	}
 };
@@ -425,7 +440,7 @@ struct Field : public FieldBase<
 };
 #endif
 
-// generalized __len, __index, __newindex access
+// generalized __len, __index, __newindex, and __ipairs access
 
 // child needs to provide IndexAccessRead, IndexAccessWrite, IndexLen
 template<typename CRTPChild, typename Type, typename Elem>
@@ -435,6 +450,8 @@ struct IndexAccessReadWrite {
 			lua_pushnil(L);
 			return 1;
 		}
+		// TODO technically tointeger will cast floats to ints
+		// whereas true Lua behavior would return nil for non-int floats ...
 		int i = lua_tointeger(L, 2);
 		--i;
 		// using 1-based indexing. sue me.
@@ -450,6 +467,8 @@ struct IndexAccessReadWrite {
 		if (lua_type(L, 2) != LUA_TNUMBER) {
 			luaL_error(L, "can only write to index elements");
 		}
+		// TODO technically tointeger will cast floats to ints
+		// whereas true Lua behavior would return nil for non-int floats ...
 		int i = lua_tointeger(L, 2);
 		--i;
 		// using 1-based indexing. sue me.
@@ -464,9 +483,42 @@ struct IndexAccessReadWrite {
 		lua_pushinteger(L, CRTPChild::IndexLen(o));
 		return 1;
 	}
+
+	//private?
+	static int IpairsNext(lua_State * L) {
+		auto & o = *lua_getptr<Type>(L, 1);
+		if (lua_isnil(L, 2)) {
+			//first key
+			lua_pushinteger(L, 1);
+			CRTPChild::IndexAccessRead(L, o, 0);
+			return 2;
+		}
+		// TODO technically tointeger will cast floats to ints
+		// whereas true Lua behavior would return nil for non-int floats ...
+		// ofc if this is ipairs then I can assert I'm providing the state so ...
+		int i = lua_tointeger(L, 2);
+		if (i >= CRTPChild::IndexLen(o)) {
+			return 0;
+		}
+		lua_pushinteger(L, i+1);
+		CRTPChild::IndexAccessRead(L, o, i);
+		return 2;
+	}
+
+	static int __ipairs(lua_State * L, Type & o) {
+		lua_pushcfunction(L, IndexAccessReadWrite::IpairsNext);
+		lua_pushvalue(L, 1);
+		lua_pushnil(L);
+		return 3;
+	}
+
+	// TODO pairs...
+	// ... but a pairs that overrides the base-class pairs ...
+	// ... because TODO pairs in the base class that iterates over the fields ...
 };
 
 // CRTPChild needs to provide IndexAt, IndexLen
+// IndexAt is 0-based despite the Lua indexes being 1-based
 template<typename CRTPChild, typename Type, typename Elem>
 struct IndexAccess
 : public IndexAccessReadWrite<
