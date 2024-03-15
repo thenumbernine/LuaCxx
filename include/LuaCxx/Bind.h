@@ -23,6 +23,52 @@ inline void * operator new(size_t size, lua_State * L) {
 
 namespace LuaCxx {
 
+// read/write operations
+
+template<typename T>
+struct LuaRW {
+	static void push(lua_State * L, T & v);
+	static T read(lua_State * L, int index);
+};
+
+template<typename T>
+requires (std::is_floating_point_v<T>)
+struct LuaRW<T> {
+	static void push(lua_State * L, T v) {
+		lua_pushnumber(L, (lua_Number)v);
+	}
+	static T read(lua_State * L, int index) {
+		return (T)lua_tonumber(L, index);
+	}
+};
+
+template<typename T>
+requires (std::is_integral_v<T>)
+struct LuaRW<T> {
+	static void push(lua_State * L, T v) {
+		lua_pushinteger(L, v);
+	}
+
+	static T read(lua_State * L, int index) {
+		// TODO what to do if the type doesn't match? i.e. assigning a string to an int?
+		// right now it just assigns 0 ...
+		return lua_tointeger(L, index);
+	}
+};
+
+template<>
+struct LuaRW<std::string> {
+	static void push(lua_State * L, std::string v) {
+		lua_pushlstring(L, v.data(), v.size());
+	}
+	static std::string read(lua_State * L, int index) {
+		size_t n = {};
+		auto ptr = lua_tolstring(L, index, &n);
+		return std::string(ptr, n);
+	}
+};
+
+
 // here' all the generic lua-binding stuff
 
 template<typename Type>
@@ -82,6 +128,11 @@ static inline int __newindex(lua_State * L) {
 }
 
 template<typename T>
+static inline int __pairs(lua_State * L) {
+	return Bind<T>::__pairs(L, *lua_getptr<T>(L, 1));
+}
+
+template<typename T>
 static inline int __len(lua_State * L) {
 	return Bind<T>::__len(L, *lua_getptr<T>(L, 1));
 }
@@ -99,9 +150,16 @@ static inline int __call(lua_State * L) {
 // default behavior.  child template-specializations can override this.
 
 template<typename T>
+static int default__tostring(lua_State * L) {
+	auto & o = *lua_getptr<T>(L, 1);
+	lua_pushfstring(L, "%s: 0x%x", Bind<T>::mtname.data(), &o);
+	return 1;
+}
+
+template<typename T>
 static int default__index(lua_State * L) {
 	auto & o = *lua_getptr<T>(L, 1);
-	char const * const k = lua_tostring(L, 2);
+	auto const k = LuaRW<std::string>::read(L, 2);
 	auto const & fields = Bind<T>::getFields();
 	auto iter = fields.find(k);
 	if (iter == fields.end()) {
@@ -116,7 +174,7 @@ template<typename T>
 static int default__newindex(lua_State * L) {
 	assert(lua_gettop(L) == 3);	// t k v
 	auto & o = *lua_getptr<T>(L, 1);
-	char const * const k = lua_tostring(L, 2);
+	auto const k = LuaRW<std::string>::read(L, 2);
 	auto const & fields = Bind<T>::getFields();
 	auto iter = fields.find(k);
 	if (iter == fields.end()) {
@@ -133,16 +191,42 @@ static int default__newindex(lua_State * L) {
 }
 
 template<typename T>
-static int default__tostring(lua_State * L) {
+static int default_pairsNext(lua_State * L) {
 	auto & o = *lua_getptr<T>(L, 1);
-	lua_pushfstring(L, "%s: 0x%x", Bind<T>::mtname.data(), &o);
-	return 1;
+	auto const & fields = Bind<T>::getFields();
+	if (lua_isnil(L, 2)) {
+		if (fields.empty()) return 0;
+		// first key
+		// TODO how about string_view map ?
+		auto iter = fields.begin();
+		LuaRW<std::string>::push(L, iter->first);
+		iter->second->push(o, L);
+		return 2;
+	} 
+	// better be a string, cuz that's all I'm supporting atm
+	auto const k = LuaRW<std::string>::read(L, 2);
+	auto iter = fields.find(k);
+	if (iter == fields.end()) return 0;
+	++iter;
+	if (iter == fields.end()) return 0;
+	LuaRW<std::string>::push(L, iter->first);
+	iter->second->push(o, L);
+	return 2;
+}
+
+template<typename T>
+static int default__pairs(lua_State * L) {
+	lua_pushcfunction(L, default_pairsNext<T>);
+	lua_pushvalue(L, 1);
+	lua_pushnil(L);
+	return 3;
 }
 
 // base infos for all structs...
 // TODO just template this? or can I?  cuz the template arg needs the member ptr, which then would guarantee it already exists ....
 template<typename T> constexpr bool has__index_v = requires(T const & t) { t.__index; };
 template<typename T> constexpr bool has__newindex_v = requires(T const & t) { t.__newindex; };
+template<typename T> constexpr bool has__pairs_v = requires(T const & t) { t.__pairs; };
 template<typename T> constexpr bool has__len_v = requires(T const & t) { t.__len; };
 template<typename T> constexpr bool has__ipairs_v = requires(T const & t) { t.__ipairs; };
 template<typename T> constexpr bool has__call_v = requires(T const & t) { t.__call; };
@@ -216,6 +300,17 @@ struct BindStructBase {
 //std::cout << "using default __newindex" << std::endl;
 			}
 
+			if constexpr (has__pairs_v<Bind<T>>) {
+				lua_pushcfunction(L, ::LuaCxx::__pairs<T>);
+				lua_setfield(L, -2, "__pairs");
+//std::cout << "assigning __pairs" << std::endl;
+			} else {
+				lua_pushcfunction(L, ::LuaCxx::default__pairs<T>);
+				lua_setfield(L, -2, "__pairs");
+//std::cout << "using default __pairs" << std::endl;
+			}
+
+
 			// the rest of these are optional to provide
 
 			if constexpr (has__len_v<Bind<T>>) {
@@ -248,65 +343,40 @@ struct BindStructBase {
 };
 
 
-// general case just wraps the memory
+// LuaRW general case just wraps the memory
+// ... impl
 template<typename T>
-struct LuaRW {
-	static void push(lua_State * L, T & v) {
-		// hmm, we want a metatable for what we return
-		// but lightuserdata has no metatable
-		// so it'll have to be a new lua table that points back to this
-		lua_newtable(L);
+void LuaRW<T>::push(lua_State * L, T & v) {
+	// hmm, we want a metatable for what we return
+	// but lightuserdata has no metatable
+	// so it'll have to be a new lua table that points back to this
+	lua_newtable(L);
 #if 1	// if the metatable isn't there then it won't be set
-		luaL_setmetatable(L, Bind<T>::mtname.data());
+	luaL_setmetatable(L, Bind<T>::mtname.data());
 #endif
 #if 0 	//isn't this supposed to do the same as luaL_setmetatable ?
-		luaL_getmetatable(L, Bind<T>::mtname.data());
+	luaL_getmetatable(L, Bind<T>::mtname.data());
 std::cout << "metatable " << Bind<T>::mtname << " type " << lua_type(L, -1) << std::endl;
-		lua_setmetatable(L, -2);
+	lua_setmetatable(L, -2);
 #endif
 #if 0 // this say ssomething is there, but it always returns nil
-		lua_getmetatable(L, -1);
+	lua_getmetatable(L, -1);
 std::cout << "metatable " << Bind<T>::mtname << " type " << lua_type(L, -1) << std::endl;
-		lua_pop(L, 1);
+	lua_pop(L, 1);
 #endif
-		lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
-		lua_pushlightuserdata(L, &v);
-		lua_rawset(L, -3);
-	}
-
-	static T read(lua_State * L, int index) {
-		luaL_error(L, "this field cannot be overwritten");
-		throw std::runtime_error("this field cannot be overwritten");
-		//return {};	// hmm this needs the default ctor to exist, but I'm throwing,
-					// so it doesn't really need to exist ...
-	}
-};
-
+	lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
+	lua_pushlightuserdata(L, &v);
+	lua_rawset(L, -3);
+}
 
 template<typename T>
-requires (std::is_floating_point_v<T>)
-struct LuaRW<T> {
-	static void push(lua_State * L, T v) {
-		lua_pushnumber(L, (lua_Number)v);
-	}
-	static T read(lua_State * L, int index) {
-		return (T)lua_tonumber(L, index);
-	}
-};
+T LuaRW<T>::read(lua_State * L, int index) {
+	luaL_error(L, "this field cannot be overwritten");
+	throw std::runtime_error("this field cannot be overwritten");
+	//return {};	// hmm this needs the default ctor to exist, but I'm throwing,
+				// so it doesn't really need to exist ...
+}
 
-template<typename T>
-requires (std::is_integral_v<T>)
-struct LuaRW<T> {
-	static void push(lua_State * L, T v) {
-		lua_pushinteger(L, v);
-	}
-
-	static T read(lua_State * L, int index) {
-		// TODO what to do if the type doesn't match? i.e. assigning a string to an int?
-		// right now it just assigns 0 ...
-		return lua_tointeger(L, index);
-	}
-};
 
 template<typename Base>
 struct FieldBase {
@@ -488,6 +558,10 @@ struct IndexAccessReadWrite {
 	static int IpairsNext(lua_State * L) {
 		auto & o = *lua_getptr<Type>(L, 1);
 		if (lua_isnil(L, 2)) {
+			if (CRTPChild::IndexLen(o) == 0) {
+				// empty
+				return 0;
+			}
 			//first key
 			lua_pushinteger(L, 1);
 			CRTPChild::IndexAccessRead(L, o, 0);
