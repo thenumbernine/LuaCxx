@@ -546,6 +546,11 @@ struct Field : public FieldBase<
 template<typename CRTPChild, typename Type, typename Elem>
 struct IndexAccessReadWrite {
 	static int __index(lua_State * L, Type & o) {
+		// see if we have any field access ...
+		if (lua_type(L, 2) == LUA_TSTRING) {
+			return default__index<Type>(L);
+		}
+
 		if (lua_type(L, 2) != LUA_TNUMBER) {
 			lua_pushnil(L);
 			return 1;
