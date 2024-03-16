@@ -25,31 +25,35 @@ namespace LuaCxx {
 
 // read/write operations
 
+// default case = push full userdata copy for pass-by-value types
 template<typename T>
 struct LuaRW {
-	static void push(lua_State * L, T & v);
+	static void push(lua_State * L, T v);
 	static T read(lua_State * L, int index);
 };
 
 template<typename T>
-requires (std::is_floating_point_v<T>)
+requires (std::is_floating_point_v<std::remove_reference_t<T>>)
 struct LuaRW<T> {
 	static void push(lua_State * L, T v) {
 		lua_pushnumber(L, (lua_Number)v);
 	}
-	static T read(lua_State * L, int index) {
-		return (T)lua_tonumber(L, index);
+	static std::remove_reference_t<T> read(lua_State * L, int index) {
+		return (std::remove_reference_t<T>)lua_tonumber(L, index);
 	}
 };
 
 template<typename T>
-requires (std::is_integral_v<T>)
+requires (std::is_integral_v<std::remove_reference_t<T>>)
 struct LuaRW<T> {
 	static void push(lua_State * L, T v) {
 		lua_pushinteger(L, v);
 	}
 
-	static T read(lua_State * L, int index) {
+	// ok LuaRW<T> could be an int or an int&
+	// T pertains to the type of the C++ data we are read/write-ing
+	// so if T is int& then we just want to reutrn an int here, not an int& here ...
+	static std::remove_reference_t<T> read(lua_State * L, int index) {
 		// TODO what to do if the type doesn't match? i.e. assigning a string to an int?
 		// right now it just assigns 0 ...
 		return lua_tointeger(L, index);
@@ -78,6 +82,21 @@ struct Bind;
 // TODO combine this with the LuaRW stuff?  maybe? maybe not?
 
 template<>
+struct Bind<char> {
+	static constexpr std::string_view mtname = "char";
+};
+
+template<>
+struct Bind<short> {
+	static constexpr std::string_view mtname = "short";
+};
+
+template<>
+struct Bind<int> {
+	static constexpr std::string_view mtname = "int";
+};
+
+template<>
 struct Bind<float> {
 	static constexpr std::string_view mtname = "float";
 };
@@ -90,6 +109,17 @@ struct Bind<double> {
 template<>
 struct Bind<long double> {
 	static constexpr std::string_view mtname = "long double";
+};
+
+template<typename T>
+struct Bind<T&> {
+	static constexpr std::string_view suffix = "&";
+	static constexpr std::string_view mtname = Common::join_v<Bind<T>::mtname, suffix>;
+	static void mtinit(lua_State * L) {
+		if constexpr (std::is_class_v<T>) {
+			Bind<T>::mtinit(L);
+		}
+	}
 };
 
 template<typename T>
@@ -378,49 +408,67 @@ struct BindStructBase {
 	}
 };
 
-
-// LuaRW general case just wraps the memory
-// ... impl
-template<typename T>
-void LuaRW<T>::push(lua_State * L, T & v) {
-	// hmm, we want a metatable for what we return
-	// but lightuserdata has no metatable
-	// so it'll have to be a new lua table that points back to this
-	lua_newtable(L);
-#if 1	// if the metatable isn't there then it won't be set
-	luaL_setmetatable(L, Bind<T>::mtname.data());
-#endif
-#if 0 	//isn't this supposed to do the same as luaL_setmetatable ?
-	luaL_getmetatable(L, Bind<T>::mtname.data());
-std::cout << "metatable " << Bind<T>::mtname << " type " << lua_type(L, -1) << std::endl;
+constexpr inline void setMTSafe(lua_State * L, char const * name) {
+#ifdef DEBUG
+	luaL_getmetatable(L, name);
+	if (lua_isnil(L, -1)) throw Common::Exception() << "YOU HAVE NOT YET INITIALIZED METATABLE " << name;
 	lua_setmetatable(L, -2);
+#else
+	luaL_setmetatable(L, name);
 #endif
-#if 0 // this say ssomething is there, but it always returns nil
-	lua_getmetatable(L, -1);
-std::cout << "metatable " << Bind<T>::mtname << " type " << lua_type(L, -1) << std::endl;
-	lua_pop(L, 1);
-#endif
+}
+
+// LuaRW general case 
+// for return--by-value 
+// create a full-userdata of the ThinVector so that it sticks around in memory after the function, when Lua tries to access it
+template<typename T>
+void LuaRW<T>::push(lua_State * L, T v) {
+	lua_newtable(L);
+	setMTSafe(L, Bind<T>::mtname.data());
 	lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
-	lua_pushlightuserdata(L, &v);
+	new(L) T(v);
 	lua_rawset(L, -3);
 }
 
 template<typename T>
 T LuaRW<T>::read(lua_State * L, int index) {
 	luaL_error(L, "this field cannot be overwritten");
-	throw std::runtime_error("this field cannot be overwritten");
 	//return {};	// hmm this needs the default ctor to exist, but I'm throwing,
-				// so it doesn't really need to exist ...
+					// so it doesn't really need to exist ...
+					// or I'll just throw to trick the compiler
+	throw std::runtime_error("this field cannot be overwritten");
 }
 
-// same as general case impl
+// same as pointer impl
 template<typename T>
-requires (std::is_pointer_v<T>)
+requires (std::is_reference_v<T> && std::is_class_v<std::remove_reference_t<T>>)
+struct LuaRW<T> {
+	static void push(lua_State * L, T v) {
+		// hmm, we want a metatable for what we return
+		// but lightuserdata has no metatable
+		// so it'll have to be a new lua table that points back to this
+		lua_newtable(L);
+		setMTSafe(L, Bind<std::remove_reference_t<T>>::mtname.data());
+		lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
+		lua_pushlightuserdata(L, &v);
+		lua_rawset(L, -3);
+	}
+	static T read(lua_State * L, int index) {
+		luaL_error(L, "this field cannot be overwritten");
+		throw std::runtime_error("this field cannot be overwritten");
+	}
+};
+
+
+// same as reference impl
+template<typename T>
+requires (std::is_pointer_v<T> && std::is_class_v<std::remove_pointer_t<T>>)
 struct LuaRW<T> {
 	static void push(lua_State * L, T v) {
 		lua_newtable(L);
-		luaL_setmetatable(L, Bind<T>::mtname.data());
+		setMTSafe(L, Bind<std::remove_pointer_t<T>>::mtname.data());
 		lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
+		// ... one dif between ref and pointer... is there a templated 'get address' method?
 		lua_pushlightuserdata(L, v);
 		lua_rawset(L, -3);
 	}
@@ -440,26 +488,6 @@ struct FieldBase {
 	virtual void read(Base & o, lua_State * L, int index) const = 0;
 	virtual void mtinit(lua_State * L) const = 0;
 };
-
-// should this go in Common/MemberPointer.h?
-// what's the better way to do this?
-template<typename T>
-struct MemberBaseClass {
-	static decltype(auto) value() {
-		if constexpr(std::is_member_object_pointer_v<T>) {
-			using type = typename Common::MemberPointer<T>::Class;
-			return (type*)nullptr;
-		} else if constexpr (std::is_member_function_pointer_v<T>) {
-			using type = typename Common::MemberMethodPointer<T>::Class;
-			return (type*)nullptr;
-		} else {
-			return nullptr;
-		}
-	}
-	using type = typename std::remove_pointer_t<decltype(value())>;\
-};
-
-
 
 template<auto field>
 int memberMethodWrapper(lua_State * L) {
@@ -493,6 +521,25 @@ int memberMethodWrapper(lua_State * L) {
 	}
 }
 
+
+// should this go in Common/MemberPointer.h?
+// what's the better way to do this?
+template<typename T>
+struct MemberBaseClass {
+	static decltype(auto) value() {
+		if constexpr(std::is_member_object_pointer_v<T>) {
+			using type = typename Common::MemberPointer<T>::Class;
+			return (type*)nullptr;
+		} else if constexpr (std::is_member_function_pointer_v<T>) {
+			using type = typename Common::MemberMethodPointer<T>::Class;
+			return (type*)nullptr;
+		} else {
+			return nullptr;
+		}
+	}
+	using type = typename std::remove_pointer_t<decltype(value())>;\
+};
+
 //generic field is an object, exposed as lightuserdata wrapped in a table
 template<auto field>
 struct Field
@@ -504,8 +551,8 @@ struct Field
 	virtual void push(Base & obj, lua_State * L) const override {
 		if constexpr(std::is_member_object_pointer_v<T>) {
 			using Value = typename Common::MemberPointer<T>::FieldType;
-			LuaRW<Value>::push(L, obj.*field);
-		} else if (std::is_member_function_pointer_v<T>) {
+			LuaRW<Value&>::push(L, obj.*field);	// LuaRW<T&> means 'push lightuserdata wrapper'
+		} else if constexpr (std::is_member_function_pointer_v<T>) {
 			//push a c function that calls the member method (and transforms all the arguments)
 			lua_pushcfunction(L, memberMethodWrapper<field>);
 		}
@@ -514,8 +561,8 @@ struct Field
 	virtual void read(Base & obj, lua_State * L, int index) const override {
 		if constexpr(std::is_member_object_pointer_v<T>) {
 			using Value = typename Common::MemberPointer<T>::FieldType;
-			obj.*field = LuaRW<Value>::read(L, index);
-		} else if (std::is_member_function_pointer_v<T>) {
+			obj.*field = LuaRW<Value&>::read(L, index);
+		} else if constexpr (std::is_member_function_pointer_v<T>) {
 			luaL_error(L, "this field is read only");
 		}
 	}
@@ -523,13 +570,11 @@ struct Field
 	virtual void mtinit(lua_State * L) const override {
 		if constexpr(std::is_member_object_pointer_v<T>) {
 			using Value = typename Common::MemberPointer<T>::FieldType;
-			if constexpr (std::is_class_v<Value>) {
-				Bind<Value>::mtinit(L);
-			}
-		} else if (std::is_member_function_pointer_v<T>) {
+			Bind<Value&>::mtinit(L);
+		} else if constexpr (std::is_member_function_pointer_v<T>) {
 			using Return = typename Common::MemberMethodPointer<T>::Return;
-			if constexpr (std::is_class_v<Return>) {
-				Bind<Return>::mtinit(L);
+			if constexpr (!std::is_same_v<Return, void>) {
+				Bind<Return&>::mtinit(L);
 			}
 			// need to add arg types too or nah?  nah... returns are returned, so they could be a first creation of that type. not args.
 		}
@@ -540,7 +585,7 @@ struct Field
 
 // child needs to provide IndexAccessRead, IndexAccessWrite, IndexLen
 template<typename CRTPChild, typename Type, typename Elem>
-struct IndexAccessReadWrite {
+struct IndexAccess {
 	static int __index(lua_State * L, Type & o) {
 		// see if we have any field access ...
 		if (lua_type(L, 2) == LUA_TSTRING) {
@@ -566,6 +611,7 @@ struct IndexAccessReadWrite {
 
 	static int __newindex(lua_State * L, Type & o) {
 		if (lua_type(L, 2) != LUA_TNUMBER) {
+// TODO implement this as a Lua-table write-protection flag in whoever (Field/Bind) is exposing it?
 #if 0	// option 1: no new fields
 			luaL_error(L, "can only write to index elements");
 #endif
@@ -587,6 +633,26 @@ struct IndexAccessReadWrite {
 		return 1;
 	}
 
+	static void IndexAccessRead(lua_State * L, Type & o, int i) {
+		LuaRW<
+			// will this be Elem& operator[] if available? 
+			//seems to be the case
+			decltype(o[i])	
+		>::push(L, CRTPChild::IndexAt(L, o, i));
+	}
+
+	static void IndexAccessWrite(lua_State * L, Type & o, int i) {
+		if constexpr (std::is_reference_v<
+			decltype(CRTPChild::IndexAt(L, o, i))
+		>) {
+			// will error if you try to write a non-prim
+			CRTPChild::IndexAt(L, o, i) = LuaRW<Elem>::read(L, 3);
+		} else {
+			luaL_error(L, "cannot write to field");
+			throw Common::Exception() << "cannot write to field";
+		}
+	}
+
 	static int __len(lua_State * L, Type & o) {
 		lua_pushinteger(L, CRTPChild::IndexLen(o));
 		return 1;
@@ -595,7 +661,8 @@ struct IndexAccessReadWrite {
 	//private?
 	static int IpairsNext(lua_State * L) {
 		auto & o = *lua_getptr<Type>(L, 1);
-		if (lua_isnil(L, 2)) {
+		int keytype = lua_type(L, 2);
+		if (keytype == LUA_TNIL) {
 			if (CRTPChild::IndexLen(o) == 0) {
 				// empty
 				return 0;
@@ -604,21 +671,25 @@ struct IndexAccessReadWrite {
 			lua_pushinteger(L, 1);
 			CRTPChild::IndexAccessRead(L, o, 0);
 			return 2;
+		} else if (keytype == LUA_TNUMBER) {
+			// TODO technically tointeger will cast floats to ints
+			// whereas true Lua behavior would return nil for non-int floats ...
+			// ofc if this is ipairs then I can assert I'm providing the state so ...
+			int i = lua_tointeger(L, 2);
+			if (i >= CRTPChild::IndexLen(o)) {
+				return 0;
+			}
+			lua_pushinteger(L, i+1);
+			CRTPChild::IndexAccessRead(L, o, i);
+			return 2;
+		} else {
+			luaL_error(L, "invalid key"); 
+			throw Common::Exception() << "invalid key";
 		}
-		// TODO technically tointeger will cast floats to ints
-		// whereas true Lua behavior would return nil for non-int floats ...
-		// ofc if this is ipairs then I can assert I'm providing the state so ...
-		int i = lua_tointeger(L, 2);
-		if (i >= CRTPChild::IndexLen(o)) {
-			return 0;
-		}
-		lua_pushinteger(L, i+1);
-		CRTPChild::IndexAccessRead(L, o, i);
-		return 2;
 	}
 
 	static int __ipairs(lua_State * L, Type & o) {
-		lua_pushcfunction(L, IndexAccessReadWrite::IpairsNext);
+		lua_pushcfunction(L, IpairsNext);
 		lua_pushvalue(L, 1);
 		lua_pushnil(L);
 		return 3;
@@ -630,36 +701,11 @@ struct IndexAccessReadWrite {
 	static int __pairs(lua_State * L, Type & o) {
 		lua_pushcfunction(L, (default_pairsNext<
 			Type,
-			IndexAccessReadWrite::IpairsNext	// once default next is done, it hands off to our ipairs
+			IpairsNext	// once default next is done, it hands off to our ipairs
 		>));
 		lua_pushvalue(L, 1);
 		lua_pushnil(L);
 		return 3;
-	}
-};
-
-// CRTPChild needs to provide IndexAt, IndexLen
-// IndexAt is 0-based despite the Lua indexes being 1-based
-template<typename CRTPChild, typename Type, typename Elem>
-struct IndexAccess
-: public IndexAccessReadWrite<
-	IndexAccess<CRTPChild, Type, Elem>,	// pass the IndexAccess as the new CRTPChild so it can see the IndexAccessRead and IndexAccessWrite here
-	Type,
-	Elem
->
-{
-	static void IndexAccessRead(lua_State * L, Type & o, int i) {
-		LuaRW<Elem>::push(L, CRTPChild::IndexAt(L, o, i));
-	}
-
-	static void IndexAccessWrite(lua_State * L, Type & o, int i) {
-		// will error if you try to write a non-prim
-		CRTPChild::IndexAt(L, o, i) = LuaRW<Elem>::read(L, 3);
-	}
-
-	//use CRTPChild's IndexLen
-	static int IndexLen(Type const & o) {
-		return CRTPChild::IndexLen(o);
 	}
 };
 
@@ -687,10 +733,7 @@ struct Bind<std::vector<Elem>>
 		Super::mtinit(L);
 
 		//init all subtypes
-		//this test is same as in Field::mtinit
-		if constexpr (std::is_class_v<Elem>) {
-			Bind<Elem>::mtinit(L);
-		}
+		Bind<Elem&>::mtinit(L);
 	}
 
 	static Elem & IndexAt(lua_State * L, Type & o, int i) {
