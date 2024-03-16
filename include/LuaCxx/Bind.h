@@ -460,17 +460,27 @@ struct LuaRW<T> {
 };
 
 
-// same as reference impl
+// pointers work same as reference impl
+// (so do refs-to-pointers)
+// TODO if it's a pointer to a non-class ....... how to treat pointers?
+// in the long run I'd like to just return the luajit cdata.
 template<typename T>
-requires (std::is_pointer_v<T> && std::is_class_v<std::remove_pointer_t<T>>)
+requires (std::is_pointer_v<std::remove_reference_t<T>>)
 struct LuaRW<T> {
 	static void push(lua_State * L, T v) {
-		lua_newtable(L);
-		setMTSafe(L, Bind<std::remove_pointer_t<T>>::mtname.data());
-		lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
-		// ... one dif between ref and pointer... is there a templated 'get address' method?
-		lua_pushlightuserdata(L, v);
-		lua_rawset(L, -3);
+		if constexpr (std::is_class_v<std::remove_pointer_t<std::remove_reference_t<T>>>) {
+			lua_newtable(L);
+			setMTSafe(L, Bind<std::remove_pointer_t<std::remove_reference_t<T>>>::mtname.data());
+			lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
+			// ... one dif between ref and pointer... is there a templated 'get address' method?
+			lua_pushlightuserdata(L, v);
+			lua_rawset(L, -3);
+		} else {
+			// pointer-to-primitive ...
+			// I feel like I should be returning a boxed type that has all pointer operations and allows reading the memory at this location ...
+			// but meh
+			lua_pushlightuserdata(L, v);
+		}
 	}
 	static T read(lua_State * L, int index) {
 		luaL_error(L, "this field cannot be overwritten");
