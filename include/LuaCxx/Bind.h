@@ -64,6 +64,7 @@ struct LuaRW<T> {
 };
 
 // args conversion does this, for pushing-by-value
+// field access is handled in string&, which right now hits the LuaRW case for fields
 template<>
 struct LuaRW<std::string> {
 	static void push(lua_State * L, std::string v) {
@@ -76,18 +77,6 @@ struct LuaRW<std::string> {
 	}
 };
 
-// fields do this, for pushing-by-reference
-template<>
-struct LuaRW<std::string&> {
-	static void push(lua_State * L, std::string & v) {
-		lua_pushlstring(L, v.data(), v.size());
-	}
-	static std::string read(lua_State * L, int index) {
-		size_t n = {};
-		auto ptr = lua_tolstring(L, index, &n);
-		return std::string(ptr, n);
-	}
-};
 
 // here' all the generic lua-binding stuff
 
@@ -132,7 +121,7 @@ struct Bind<std::string> {
 	static constexpr std::string_view mtname = "std::string";
 	static void getMT(lua_State * L) {
 		// technically yes I could get string here but ...
-		// this function is for setting C++ obj's metatables, not setting builtin Lua data's metatable 
+		// this function is for setting C++ obj's metatables, not setting builtin Lua data's metatable
 		lua_pushnil(L);
 	}
 };
@@ -447,9 +436,9 @@ constexpr inline void setMT(lua_State * L) {
 	lua_setmetatable(L, -2);
 }
 
-// LuaRW general case 
-// for return--by-value 
-// create a full-userdata of the ThinVector so that it sticks around in memory after the function, when Lua tries to access it
+// LuaRW general case
+// for return-by-value
+// create a full-userdata of the object so that it sticks around in memory after the function, when Lua tries to access it
 template<typename T>
 void LuaRW<T>::push(lua_State * L, T v) {
 	lua_newtable(L);
@@ -473,18 +462,32 @@ template<typename T>
 requires (std::is_reference_v<T> && std::is_class_v<std::remove_reference_t<T>>)
 struct LuaRW<T> {
 	static void push(lua_State * L, T v) {
-		// hmm, we want a metatable for what we return
-		// but lightuserdata has no metatable
-		// so it'll have to be a new lua table that points back to this
-		lua_newtable(L);
-		setMT<std::remove_reference_t<T>>(L);
-		lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
-		lua_pushlightuserdata(L, &v);
-		lua_rawset(L, -3);
+		// this is getting ugly ... I need to clean it up ...
+		// there is a string and string& override. .. if I add too many string permtuations then the compiler cmplains about ambiguous mathces ...
+		// how long until I turn the whole thing into a giant if constexpr condition?
+		if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::string>) {
+			lua_pushlstring(L, v.data(), v.size());
+		} else {
+			// hmm, we want a metatable for what we return
+			// but lightuserdata has no metatable
+			// so it'll have to be a new lua table that points back to this
+			lua_newtable(L);
+			setMT<std::remove_reference_t<T>>(L);
+			lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
+			lua_pushlightuserdata(L, &v);
+			lua_rawset(L, -3);
+		}
 	}
-	static T read(lua_State * L, int index) {
-		luaL_error(L, "this field cannot be overwritten");
-		throw std::runtime_error("this field cannot be overwritten");
+	static std::remove_cvref_t<T> read(lua_State * L, int index) {
+		// same complaint as above ...
+		if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::string>) {
+			size_t n = {};
+			auto ptr = lua_tolstring(L, index, &n);
+			return std::string(ptr, n);
+		} else {
+			luaL_error(L, "this field cannot be overwritten");
+			throw std::runtime_error("this field cannot be overwritten");
+		}
 	}
 };
 
@@ -541,10 +544,13 @@ int memberMethodWrapper(lua_State * L) {
 	// but mind you, how to determine from LuaRW, unless we only use pass-by-value for values and pass-by-ref for refs ?
 	// or maybe another template arg in LuaRW?
 
+	// here I'm adding +2 ... +1 to go from C++ to Lua stack index, +1 to offset past the initial object
 	if constexpr (std::is_same_v<Return, void>) {
 		[&]<auto...j>(std::index_sequence<j...>) -> decltype(auto) {
 			(o.*field)(
-				LuaRW<std::tuple_element_t<j, Args>>::read(L, j+1)...
+				LuaRW<
+					std::remove_const_t<std::tuple_element_t<j, Args>>
+				>::read(L, j+2)...
 			);
 		}(std::make_index_sequence<std::tuple_size_v<Args>>{});
 		return 0;
@@ -552,7 +558,9 @@ int memberMethodWrapper(lua_State * L) {
 		LuaRW<Return>::push(L,
 			[&]<auto...j>(std::index_sequence<j...>) -> decltype(auto) {
 				return (o.*field)(
-					LuaRW<std::tuple_element_t<j, Args>>::read(L, j+1)...
+					LuaRW<
+						std::remove_const_t<std::tuple_element_t<j, Args>>
+					>::read(L, j+2)...
 				);
 			}(std::make_index_sequence<std::tuple_size_v<Args>>{})
 		);
@@ -681,9 +689,9 @@ struct IndexAccess {
 
 	static void IndexAccessRead(lua_State * L, Type & o, int i) {
 		LuaRW<
-			// will this be Elem& operator[] if available? 
+			// will this be Elem& operator[] if available?
 			//seems to be the case
-			decltype(o[i])	
+			decltype(o[i])
 		>::push(L, CRTPChild::IndexAt(L, o, i));
 	}
 
@@ -729,7 +737,7 @@ struct IndexAccess {
 			CRTPChild::IndexAccessRead(L, o, i);
 			return 2;
 		} else {
-			luaL_error(L, "invalid key"); 
+			luaL_error(L, "invalid key");
 			throw Common::Exception() << "invalid key";
 		}
 	}
