@@ -9,6 +9,9 @@ TODO organize better.  move all the impl code into an impl{} namespace or someth
 TODO the LuaRW is very similar to LuaCxx/pushToLuaState and readFromLuaState ...
  ... but for this there are cases specific to the light/heavy userdata that the C++ code is using
 I'll think of how to merge the two someday...
+
+TODO same with Bind and LuaRW ... they could be the same
+
 Honestly, this Bind.h is separate of all ther est of LuaCxx, which was originally designed just to be a wrapper for using LuaRefs and the global registery in C++...
 ... maybe this should be in its own repo?
 */
@@ -60,6 +63,7 @@ struct LuaRW<T> {
 	}
 };
 
+// args conversion does this, for pushing-by-value
 template<>
 struct LuaRW<std::string> {
 	static void push(lua_State * L, std::string v) {
@@ -72,6 +76,18 @@ struct LuaRW<std::string> {
 	}
 };
 
+// fields do this, for pushing-by-reference
+template<>
+struct LuaRW<std::string&> {
+	static void push(lua_State * L, std::string & v) {
+		lua_pushlstring(L, v.data(), v.size());
+	}
+	static std::string read(lua_State * L, int index) {
+		size_t n = {};
+		auto ptr = lua_tolstring(L, index, &n);
+		return std::string(ptr, n);
+	}
+};
 
 // here' all the generic lua-binding stuff
 
@@ -111,13 +127,25 @@ struct Bind<long double> {
 	static constexpr std::string_view mtname = "long double";
 };
 
+template<>
+struct Bind<std::string> {
+	static constexpr std::string_view mtname = "std::string";
+	static void getMT(lua_State * L) {
+		// technically yes I could get string here but ...
+		// this function is for setting C++ obj's metatables, not setting builtin Lua data's metatable 
+		lua_pushnil(L);
+	}
+};
+
 template<typename T>
 struct Bind<T&> {
 	static constexpr std::string_view suffix = "&";
 	static constexpr std::string_view mtname = Common::join_v<Bind<T>::mtname, suffix>;
-	static void mtinit(lua_State * L) {
+	static void getMT(lua_State * L) {
 		if constexpr (std::is_class_v<T>) {
-			Bind<T>::mtinit(L);
+			Bind<T>::getMT(L);
+		} else {
+			lua_pushnil(L);
 		}
 	}
 };
@@ -313,16 +341,15 @@ struct BindStructBase {
 		lua_setfield(L, -2, "__call");
 	}
 
-	/*
-	initialize the metatable associated with this type
-	*/
-	static void mtinit(lua_State * L) {
+	// initialize the metatable associated with this type
+	// leaves the metatable on the stack
+	static void getMT(lua_State * L) {
 		auto const & mtname = Bind<T>::mtname;
 
 		if (luaL_newmetatable(L, mtname.data())) {
-			
 			for (auto & pair : Bind<T>::getFields()) {
-				pair.second->mtinit(L);
+				pair.second->getMT(L);
+				lua_pop(L, 1);
 			}
 
 			// not supported in luajit ...
@@ -406,20 +433,18 @@ struct BindStructBase {
 //std::cout << "assigning metatable __call ctor" << std::endl;
 			}
 		}
-		lua_pop(L, 1);
 	}
 };
 
+// sets metatable of the obj on top of the stack to the metatable associated with T
+// builds T's metatable if necessary
 template<typename T>
-constexpr inline void setMTSafe(lua_State * L) {
-	auto const & name = Bind<T>::mtname.data();
-#ifdef DEBUG
-	luaL_getmetatable(L, name);
-	if (lua_isnil(L, -1)) throw Common::Exception() << "YOU HAVE NOT YET INITIALIZED METATABLE " << name;
+constexpr inline void setMT(lua_State * L) {
+	Bind<T>::getMT(L);
+	if (lua_isnil(L, -1)) {
+		luaL_error(L, "YOU HAVE NOT YET INITIALIZED METATABLE %s", Bind<T>::mtname.data());
+	}
 	lua_setmetatable(L, -2);
-#else
-	luaL_setmetatable(L, name);
-#endif
 }
 
 // LuaRW general case 
@@ -428,7 +453,7 @@ constexpr inline void setMTSafe(lua_State * L) {
 template<typename T>
 void LuaRW<T>::push(lua_State * L, T v) {
 	lua_newtable(L);
-	setMTSafe<T>(L);
+	setMT<T>(L);
 	lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
 	new(L) T(v);
 	lua_rawset(L, -3);
@@ -452,7 +477,7 @@ struct LuaRW<T> {
 		// but lightuserdata has no metatable
 		// so it'll have to be a new lua table that points back to this
 		lua_newtable(L);
-		setMTSafe<std::remove_reference_t<T>>(L);
+		setMT<std::remove_reference_t<T>>(L);
 		lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
 		lua_pushlightuserdata(L, &v);
 		lua_rawset(L, -3);
@@ -474,7 +499,7 @@ struct LuaRW<T> {
 	static void push(lua_State * L, T v) {
 		if constexpr (std::is_class_v<std::remove_pointer_t<std::remove_reference_t<T>>>) {
 			lua_newtable(L);
-			setMTSafe<std::remove_pointer_t<std::remove_reference_t<T>>>(L);
+			setMT<std::remove_pointer_t<std::remove_reference_t<T>>>(L);
 			lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
 			// ... one dif between ref and pointer... is there a templated 'get address' method?
 			lua_pushlightuserdata(L, v);
@@ -500,7 +525,7 @@ struct FieldBase {
 	// o can't be const because o.*field can't be const because in case it's a blob/ptr then it's getting pushed into lua as lightuserdata ... and can't be const
 	virtual void push(Base & o, lua_State * L) const = 0;
 	virtual void read(Base & o, lua_State * L, int index) const = 0;
-	virtual void mtinit(lua_State * L) const = 0;
+	virtual void getMT(lua_State * L) const = 0;
 };
 
 template<auto field>
@@ -581,16 +606,23 @@ struct Field
 		}
 	}
 
-	virtual void mtinit(lua_State * L) const override {
+	// leaves the metatable on the stack ... if there is a metatable
+	// if it's a primitive then leaves nothing on the stack
+	// I think this is now only called by BindStructBase::getMT, which just pops them anyways, so meh
+	virtual void getMT(lua_State * L) const override {
 		if constexpr(std::is_member_object_pointer_v<T>) {
 			using Value = typename Common::MemberPointer<T>::FieldType;
-			Bind<Value&>::mtinit(L);
+			Bind<Value&>::getMT(L);
 		} else if constexpr (std::is_member_function_pointer_v<T>) {
 			using Return = typename Common::MemberMethodPointer<T>::Return;
 			if constexpr (!std::is_same_v<Return, void>) {
-				Bind<Return&>::mtinit(L);
+				Bind<Return&>::getMT(L);
+			} else {
+				lua_pushnil(L);
 			}
 			// need to add arg types too or nah?  nah... returns are returned, so they could be a first creation of that type. not args.
+		} else {
+			lua_pushnil(L);
 		}
 	}
 };
@@ -743,11 +775,12 @@ struct Bind<std::vector<Elem>>
 	static constexpr std::string_view mtname = Common::join_v<strpre, Bind<Elem>::mtname, strsuf>;
 
 	// vector needs Elem's metatable initialized
-	static void mtinit(lua_State * L) {
-		Super::mtinit(L);
-
+	static void getMT(lua_State * L) {
 		//init all subtypes
-		Bind<Elem&>::mtinit(L);
+		Bind<Elem&>::getMT(L);
+		lua_pop(L, 1);
+
+		Super::getMT(L);
 	}
 
 	static Elem & IndexAt(lua_State * L, Type & o, int i) {
