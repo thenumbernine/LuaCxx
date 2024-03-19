@@ -303,6 +303,7 @@ template<typename T>
 struct BindStructBase {
 
 	// add the class constructor as the call operator of the metatable
+	// leaves metatable on the stack
 	static void initMtCtor(lua_State * L) {
 		static constexpr std::string_view suffix = " metatable";
 		static constexpr std::string_view mtname = Common::join_v<Bind<T>::mtname, suffix>;
@@ -318,11 +319,12 @@ struct BindStructBase {
 	static void mtinit(lua_State * L) {
 		auto const & mtname = Bind<T>::mtname;
 
-		for (auto & pair : Bind<T>::getFields()) {
-			pair.second->mtinit(L);
-		}
-
 		if (luaL_newmetatable(L, mtname.data())) {
+			
+			for (auto & pair : Bind<T>::getFields()) {
+				pair.second->mtinit(L);
+			}
+
 			// not supported in luajit ...
 			lua_pushstring(L, mtname.data());
 			lua_setfield(L, -2, "__name");
@@ -408,7 +410,9 @@ struct BindStructBase {
 	}
 };
 
-constexpr inline void setMTSafe(lua_State * L, char const * name) {
+template<typename T>
+constexpr inline void setMTSafe(lua_State * L) {
+	auto const & name = Bind<T>::mtname.data();
 #ifdef DEBUG
 	luaL_getmetatable(L, name);
 	if (lua_isnil(L, -1)) throw Common::Exception() << "YOU HAVE NOT YET INITIALIZED METATABLE " << name;
@@ -424,7 +428,7 @@ constexpr inline void setMTSafe(lua_State * L, char const * name) {
 template<typename T>
 void LuaRW<T>::push(lua_State * L, T v) {
 	lua_newtable(L);
-	setMTSafe(L, Bind<T>::mtname.data());
+	setMTSafe<T>(L);
 	lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
 	new(L) T(v);
 	lua_rawset(L, -3);
@@ -448,7 +452,7 @@ struct LuaRW<T> {
 		// but lightuserdata has no metatable
 		// so it'll have to be a new lua table that points back to this
 		lua_newtable(L);
-		setMTSafe(L, Bind<std::remove_reference_t<T>>::mtname.data());
+		setMTSafe<std::remove_reference_t<T>>(L);
 		lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
 		lua_pushlightuserdata(L, &v);
 		lua_rawset(L, -3);
@@ -470,7 +474,7 @@ struct LuaRW<T> {
 	static void push(lua_State * L, T v) {
 		if constexpr (std::is_class_v<std::remove_pointer_t<std::remove_reference_t<T>>>) {
 			lua_newtable(L);
-			setMTSafe(L, Bind<std::remove_pointer_t<std::remove_reference_t<T>>>::mtname.data());
+			setMTSafe<std::remove_pointer_t<std::remove_reference_t<T>>>(L);
 			lua_pushliteral(L, LUACXX_BIND_PTRFIELD);
 			// ... one dif between ref and pointer... is there a templated 'get address' method?
 			lua_pushlightuserdata(L, v);
