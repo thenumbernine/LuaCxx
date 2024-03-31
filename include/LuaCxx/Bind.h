@@ -17,6 +17,8 @@ Honestly, this Bind.h is separate of all ther est of LuaCxx, which was originall
 */
 
 #include "Common/String.h"	//Common::join_v
+#include "Common/Function.h"	//Common::Function
+#include "Common/MemberPointer.h"	//Common::MemberPointer, Common::MemberMethodPointer
 #include <lua.hpp>
 #include <type_traits>
 
@@ -515,16 +517,74 @@ struct LuaRW<T> {
 	}
 };
 
-
-
+// TODO instead of FieldBase & vtable, use variant<> or any<> or something ... supposedly faster?
 template<typename Base>
 struct FieldBase {
 	virtual ~FieldBase() {};
 	// o can't be const because o.*field can't be const because in case it's a blob/ptr then it's getting pushed into lua as lightuserdata ... and can't be const
 	virtual void push(Base & o, lua_State * L) const = 0;
 	virtual void read(Base & o, lua_State * L, int index) const = 0;
-	virtual void getMT(lua_State * L) const = 0;
 };
+
+// this is a static method
+// but exposed as a member of the ANN class
+// TODO this for all static methods of any class, and move it to LuaCxx/Bind.h
+// and in that case TODO, should static members take . or : ?  probably :, as in ClassMetaTable:staticMethod(...)
+//  so that child classes invoking static methods pass into the method a way to identify the class
+//  even tho in C that's not needed
+//  but just for call convention's sake, I'll accept (and ignore) the 1st argument for class-static methods
+// ... very tempting to just wrap a function pointer and remove teh 1st arg, use . instead of :
+template<auto func>
+int staticMemberMethodWrapper(lua_State * L) {
+	// hmm ... interesting that Common::Function takes a function def, but Common::Member* takes a function-pointer or member-pointer
+	// ... can you declare a non-pointer member-function?  would you want to?
+	using F = Common::Function<std::remove_pointer_t<decltype(func)>>;
+	using Args = typename F::Args;
+	using Return = typename F::Return;
+	// Expect the 1st arg to be the class table <=> object metatable
+	//  but don't bother interpret it.
+	//auto & o = *lua_getptr<typename MMP::Class>(L, 1);
+
+	// here I'm adding +2 ... +1 to go from C++ to Lua stack index, +1 to offset past the initial object
+	if constexpr (std::is_same_v<Return, void>) {
+		[&]<auto...j>(std::index_sequence<j...>) -> decltype(auto) {
+			func(
+				LuaRW<
+					std::remove_const_t<std::tuple_element_t<j, Args>>
+				>::read(L, j+2)...
+			);
+		}(std::make_index_sequence<std::tuple_size_v<Args>>{});
+		return 0;
+	} else {
+		LuaRW<Return>::push(L,
+			[&]<auto...j>(std::index_sequence<j...>) -> decltype(auto) {
+				return func(
+					LuaRW<
+						std::remove_const_t<std::tuple_element_t<j, Args>>
+					>::read(L, j+2)...
+				);
+			}(std::make_index_sequence<std::tuple_size_v<Args>>{})
+		);
+		return 1;
+	}
+}
+
+template<
+	typename Type,
+	auto func
+>
+struct FieldStatic : public FieldBase<Type> {
+	virtual void push(Type & obj, lua_State * L) const override {
+		//push a c function that wraps this method (and transforms all the arguments)
+		lua_pushcfunction(L, staticMemberMethodWrapper<func>);
+	}
+
+	virtual void read(Type & obj, lua_State * L, int index) const override {
+		luaL_error(L, "this field is read only");
+	}
+};
+
+
 
 template<auto field>
 int memberMethodWrapper(lua_State * L) {
@@ -606,26 +666,6 @@ struct Field
 			obj.*field = LuaRW<Value&>::read(L, index);
 		} else if constexpr (std::is_member_function_pointer_v<T>) {
 			luaL_error(L, "this field is read only");
-		}
-	}
-
-	// leaves the metatable on the stack ... if there is a metatable
-	// if it's a primitive then leaves nothing on the stack
-	// I think this is now only called by BindStructBase::getMT, which just pops them anyways, so meh
-	virtual void getMT(lua_State * L) const override {
-		if constexpr(std::is_member_object_pointer_v<T>) {
-			using Value = typename Common::MemberPointer<T>::FieldType;
-			Bind<Value&>::getMT(L);
-		} else if constexpr (std::is_member_function_pointer_v<T>) {
-			using Return = typename Common::MemberMethodPointer<T>::Return;
-			if constexpr (!std::is_same_v<Return, void>) {
-				Bind<Return&>::getMT(L);
-			} else {
-				lua_pushnil(L);
-			}
-			// need to add arg types too or nah?  nah... returns are returned, so they could be a first creation of that type. not args.
-		} else {
-			lua_pushnil(L);
 		}
 	}
 };
