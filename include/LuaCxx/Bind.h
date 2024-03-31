@@ -336,11 +336,6 @@ struct BindStructBase {
 		auto const & mtname = Bind<T>::mtname;
 
 		if (luaL_newmetatable(L, mtname.data())) {
-			for (auto & pair : Bind<T>::getFields()) {
-				pair.second->getMT(L);
-				lua_pop(L, 1);
-			}
-
 			// not supported in luajit ...
 			lua_pushstring(L, mtname.data());
 			lua_setfield(L, -2, "__name");
@@ -781,15 +776,6 @@ struct Bind<std::vector<Elem>>
 	static constexpr std::string_view strpre = "std::vector<";
 	static constexpr std::string_view strsuf = ">";
 	static constexpr std::string_view mtname = Common::join_v<strpre, Bind<Elem>::mtname, strsuf>;
-
-	// vector needs Elem's metatable initialized
-	static void getMT(lua_State * L) {
-		//init all subtypes
-		Bind<Elem&>::getMT(L);
-		lua_pop(L, 1);
-
-		Super::getMT(L);
-	}
 
 	static Elem & IndexAt(lua_State * L, Type & o, int i) {
 		return o[i];

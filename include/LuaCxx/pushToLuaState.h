@@ -141,7 +141,7 @@ struct pushToLuaState_impl<std::map<A,B>> {
 	static void exec(lua_State* L, const std::map<A,B>& value) {
 		lua_newtable(L);
 		int t = lua_gettop(L);
-		for (const std::pair<A,B> &p : value) {
+		for (auto p : value) {
 			pushToLuaState<A>(L, p.first);
 			pushToLuaState<B>(L, p.second);
 			lua_settable(L, t);
