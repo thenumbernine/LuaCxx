@@ -448,9 +448,6 @@ void LuaRW<T>::push(lua_State * L, T v) {
 template<typename T>
 T LuaRW<T>::read(lua_State * L, int index) {
 	luaL_error(L, "this field cannot be overwritten");
-	//return {};	// hmm this needs the default ctor to exist, but I'm throwing,
-					// so it doesn't really need to exist ...
-					// or I'll just throw to trick the compiler
 	throw std::runtime_error("this field cannot be overwritten");
 }
 
@@ -475,15 +472,16 @@ struct LuaRW<T> {
 			lua_rawset(L, -3);
 		}
 	}
-	static std::remove_cvref_t<T> read(lua_State * L, int index) {
+	static decltype(auto) read(lua_State * L, int index) {
 		// same complaint as above ...
 		if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::string>) {
 			size_t n = {};
 			auto ptr = lua_tolstring(L, index, &n);
 			return std::string(ptr, n);
 		} else {
-			luaL_error(L, "this field cannot be overwritten");
-			throw std::runtime_error("this field cannot be overwritten");
+			// TODO consider C++ coercion?
+			auto src = lua_getptr<std::remove_cvref_t<T>>(L, index);
+			return *src;
 		}
 	}
 };
