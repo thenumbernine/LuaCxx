@@ -11,7 +11,4 @@ Another part of this is a class wrapper to the Lua stack, for just refcounting.
 Another part is automatic Lua bindings.  Driven by a parallel Lua/C++ interface layer that needs to merged with the other two's...
 
 TODO's for LuaCxx/Bind.h:
-- needs member-method-returns-ref to work
-- needs pass-by-value methods to push copies of full userdata instead of light userdata
 - pairs for everyone + pairs-over-ipairs support for extra index / operator[] access objects
-- expose C++ static members in the obj metatables (esp so the Lua metatable instances can access them, but so can the outside world via the metatable)
