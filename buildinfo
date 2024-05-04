@@ -17,7 +17,7 @@ if platform == 'linux' then
 	elseif LuaCxx_luaVer == 'JIT' then
 		--env:addPackages'luajit'
 		--linkFlags = linkFlags .. ' -pagezero_size 10000 -image_base 100000000'
-		libs:insert'luajit-openresty-2.1.20231117'
+		libs:insert'luajit'
 		include:insert'/usr/local/include/luajit-2.1'
 	end
 end
