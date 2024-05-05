@@ -44,7 +44,7 @@ inline void lua_seti(lua_State * const L, int index, lua_Integer const key) {
 
 template<typename T>
 struct pushToLuaState_impl {
-	static void exec(lua_State* L, const T& value) {
+	static void exec(lua_State* L, T const & value) {
 		value.pushToLuaState(L);
 	}
 };
@@ -54,7 +54,7 @@ struct pushToLuaState_impl {
 
 
 template<typename T>
-inline void pushToLuaState(lua_State* L, const T& value) {
+inline void pushToLuaState(lua_State* L, T const & value) {
 	pushToLuaState_impl<T>::exec(L, value);
 }
 
@@ -113,7 +113,7 @@ struct pushToLuaState_impl<std::time_t> {
 
 template<typename A, typename B>
 struct pushToLuaState_impl<std::pair<A,B>> {
-	static void exec(lua_State* L, const std::pair<A,B>& value) {
+	static void exec(lua_State* L, std::pair<A,B> const & value) {
 		lua_newtable(L);
 		int t = lua_gettop(L);
 		pushToLuaState<A>(L, value.first);
@@ -127,7 +127,7 @@ struct pushToLuaState_impl<std::pair<A,B>> {
 //so it goes from being 0-based to 1-based
 template<typename T>
 struct pushToLuaState_impl<std::vector<T>> {
-	static void exec(lua_State* L, const std::vector<T>& value) {
+	static void exec(lua_State* L, std::vector<T> const & value) {
 		lua_newtable(L);	//{}
 		for (int i = 0; i < (int)value.size(); ++i) {
 			pushToLuaState<T>(L, value[i]);	//{} v[i]
@@ -138,7 +138,7 @@ struct pushToLuaState_impl<std::vector<T>> {
 
 template<typename A, typename B>
 struct pushToLuaState_impl<std::map<A,B>> {
-	static void exec(lua_State* L, const std::map<A,B>& value) {
+	static void exec(lua_State* L, std::map<A,B> const & value) {
 		lua_newtable(L);
 		int t = lua_gettop(L);
 		for (auto p : value) {
@@ -148,6 +148,5 @@ struct pushToLuaState_impl<std::map<A,B>> {
 		}
 	}
 };
-
 
 }

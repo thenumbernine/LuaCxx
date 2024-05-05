@@ -2,8 +2,8 @@
 
 namespace LuaCxx {
 
-State* GlobalTable::pushGlobalTable(State* state) {
-	lua_State* L = state->getState();
+State * GlobalTable::pushGlobalTable(State * state) {
+	lua_State * L = state->getState();
 #if LUA_VERSION_NUM == 501
 	lua_pushvalue(L, LUA_GLOBALSINDEX);
 #elif LUA_VERSION_NUM >= 502
@@ -15,7 +15,7 @@ State* GlobalTable::pushGlobalTable(State* state) {
 }
 
 //push the global table onto the stack before constructing the value object
-GlobalTable::GlobalTable(State* state) 
+GlobalTable::GlobalTable(State * state) 
 : Ref(pushGlobalTable(state)) 
 {}
 

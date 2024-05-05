@@ -42,18 +42,18 @@ int State::errorHandler(lua_State *L) {
 	return 1;
 }
 
-State& State::loadFile(const std::string& filename) {
+State & State::loadFile(std::string const & filename) {
 	luaL_loadfile(L, filename.c_str());
 	if (!lua_isfunction(L, lua_gettop(L))) throw Common::Exception() << "failed to load file " << filename << " with error " << lua_tostring(L,-1);
 	call(0,0);
 	return *this;
 }
 
-State& State::loadString(const std::string& str) {
+State & State::loadString(std::string const & str) {
 	return runString(str, 0, 0);
 }
 
-State& State::runString(const std::string& str, int narg, int nret) {
+State & State::runString(std::string const & str, int narg, int nret) {
 	luaL_loadstring(L, str.c_str());
 	if (!lua_isfunction(L, lua_gettop(L))) throw Common::Exception() << "failed to load string " << str << " with error " << lua_tostring(L, -1);
 	call(narg, nret);
@@ -88,13 +88,12 @@ Stack State::stack() {
 }
 
 //must have one for each instance of Ref::operator[]
-template<> Ref State::operator[](int key) { return ref()[key]; }
-template<> Ref State::operator[](float key) { return ref()[key]; }
-template<> Ref State::operator[](double key) { return ref()[key]; }
-template<> Ref State::operator[](const char* key) { return ref()[key]; }
-template<> Ref State::operator[](const std::string& key) { return ref()[key]; }
+Ref State::operator[](float key) { return ref()[key]; }
+Ref State::operator[](double key) { return ref()[key]; }
+Ref State::operator[](char const * key) { return ref()[key]; }
+Ref State::operator[](std::string const & key) { return ref()[key]; }
 
-State& State::operator<<(const std::string& str) {
+State & State::operator<<(const std::string & str) {
 	loadString(str);
 	return *this;
 }

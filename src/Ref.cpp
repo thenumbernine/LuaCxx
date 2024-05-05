@@ -24,7 +24,7 @@ Ref::Details::~Details() {
 
 
 Ref::Ref(State* state) : details(std::make_shared<Details>(state)) {}
-Ref::Ref(const Ref &value) : details(value.details) {}
+Ref::Ref(Ref const & value) : details(value.details) {}
 
 bool Ref::good() const { return details->good; }
 
@@ -60,21 +60,19 @@ bool Ref::isUserData() { details->push(); return testType<lua_isuserdata>(detail
 
 int Ref::len() {
 	details->push();
-	lua_State* L = details->state->getState();
+	lua_State * L = details->state->getState();
 #if LUA_VERISON_NUM <= 501
-	// hmmmm metamethods ... lua 5.1 api only supports objlen, which is equiv to rawlen
-	//cheating until I think of a better way to do this ...
-	//NOTICE .len() for lua5.1 / luajit will only return rawlen ...
-	lua_objlen(L, -2);
+	int len = (int)lua_objlen(L, -1);
+	lua_pop(L, 1);
 #else
 	lua_len(L, -1);
-#endif
 	int len = readFromLuaState<int>(L, -1);
 	lua_pop(L, 2);
+#endif
 	return len;
 }
 
-bool Ref::operator==(const Ref& other) const {
+bool Ref::operator==(Ref const & other) const {
 	lua_State* L = details->state->getState();
 	int top = lua_gettop(L);
 	details->push();		//a
@@ -88,7 +86,7 @@ bool Ref::operator==(const Ref& other) const {
 	return result;
 }
 
-bool Ref::operator!=(const Ref& other) const {
+bool Ref::operator!=(Ref const & other) const {
 	return !operator==(other);
 }
 
@@ -100,18 +98,18 @@ Ref::iterator::iterator(State* state_, bool done_)
 , done(done_)
 {}
 
-bool Ref::iterator::operator==(const iterator& other) {
+bool Ref::iterator::operator==(iterator const & other) {
 	if (done == other.done) return true;
 	if (table != other.table) return false;
 	if (key != other.key) return false;
 	return true;
 }
 
-bool Ref::iterator::operator!=(const iterator& other) {
+bool Ref::iterator::operator!=(iterator const & other) {
 	return !operator==(other);
 }
 
-Ref::iterator& Ref::iterator::operator++() {
+Ref::iterator & Ref::iterator::operator++() {
 	lua_State* L = state->getState();
 	table.details->push();	//t
 	int t = lua_gettop(L);

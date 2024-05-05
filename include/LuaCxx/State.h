@@ -29,13 +29,13 @@ public:
 	virtual ~State();
 	
 	//executes a string via a lua_call, with narg and nret on the stack
-	State& runString(const std::string& str, int narg, int nret);
+	State & runString(std::string const & str, int narg, int nret);
 
-	//executes a string via runString.  no arguments, no return.
-	State& loadString(const std::string& str);
+	//executes a string via runString. no arguments, no return.
+	State & loadString(std::string const & str);
 
 	//laods the file and executes it via lua_loadfile 
-	State& loadFile(const std::string& filename);
+	State & loadFile(std::string const & filename);
 
 	//expects function and args on the stack 
 	//returns with results on the stack
@@ -54,10 +54,13 @@ public:
 	//...but I can't just yet because of include circular dependencies
 	//...that might not be able to resolve until I separate struct prototypes from inline header bodies (.h vs .hpp)
 	//in the mean time, I can still add individual template bodies to the .cpp file
-	template<typename T> Ref operator[](T key);
+	Ref operator[](float key);
+	Ref operator[](double key);
+	Ref operator[](char const * key);
+	Ref operator[](std::string const & key);
 
 	//shorthand for loadString
-	State& operator<<(const std::string& str);
+	State & operator<<(std::string const & str);
 };
 
 }

@@ -9,7 +9,7 @@ Stack::Stack(State* state_)
 }
 
 //copy constructor
-Stack::Stack(const Stack& other) {
+Stack::Stack(Stack const & other) {
 	throw Common::Exception() << "stack copy not allowed";
 }
 

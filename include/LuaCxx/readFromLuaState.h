@@ -7,32 +7,32 @@
 namespace LuaCxx {
 
 template<typename T> 
-inline T readFromLuaState(lua_State* L, int loc);
+inline T readFromLuaState(lua_State * L, int loc);
 
 template<> 
-inline bool readFromLuaState<bool>(lua_State* L, int loc) {
+inline bool readFromLuaState<bool>(lua_State * L, int loc) {
 	return lua_toboolean(L, loc); 
 }
 
 template<> 
-inline int readFromLuaState<int>(lua_State* L, int loc) {
+inline int readFromLuaState<int>(lua_State * L, int loc) {
 	return lua_tointeger(L, loc); 
 }
 
 template<> 
-inline float readFromLuaState<float>(lua_State* L, int loc) {
+inline float readFromLuaState<float>(lua_State * L, int loc) {
 	return (float)lua_tonumber(L, loc); 
 }
 
 template<> 
-inline double readFromLuaState<double>(lua_State* L, int loc) {
+inline double readFromLuaState<double>(lua_State * L, int loc) {
 	return lua_tonumber(L, loc); 
 }
 
 template<> 
-inline std::string readFromLuaState<std::string>(lua_State* L, int loc) {
+inline std::string readFromLuaState<std::string>(lua_State * L, int loc) {
 	size_t len = 0;
-	const char *cResult = lua_tolstring(L, loc, &len);
+	char const * cResult = lua_tolstring(L, loc, &len);
 	return std::string(cResult, len);
 }
 
