@@ -11,7 +11,7 @@ LuaCxx_luaVer = LuaCxx_luaVer or 'JIT'
 distName = 'LuaCxx_LuaJIT'
 --]]
 
-if platform == 'linux' then
+if platform == 'linux' or platform == 'osx' then
 	if LuaCxx_luaVer == 'Vanilla' then
 		env:addPackages'lua-c++'
 	elseif LuaCxx_luaVer == 'JIT' then
@@ -26,6 +26,6 @@ if including then
 	if platform == 'msvc' then
 		dynamicLibs:insert(home..[[\Projects\other\lua-5.3.5\vs\lua-5.3.5\x64\Release\lua53.lib]])
 	elseif platform == 'osx' then
-		dynamicLibs:insert(home..'/lib/liblua.dylib')
+		--dynamicLibs:insert(home..'/lib/liblua.dylib')
 	end
 end
